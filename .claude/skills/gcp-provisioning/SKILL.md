@@ -92,32 +92,72 @@ bq show --model ah-estefania-alozno:elden_ring_gold.<remote_model_name>
 
 ## 4. IAM (PRD §30)
 
-MVP: usar la identidad/service account por defecto del proyecto con permisos amplios
-suficientes para avanzar rápido (deuda técnica aceptada explícitamente, ver AGENTS.md §2).
+**TODO-05 completado (2026-09-06):** Cloud Run ya no usa la default compute service account.
+Corre con una SA dedicada de privilegios mínimos:
 
-Verificar qué roles tiene la identidad activa:
+```
+elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com
+```
+
+Verificar qué roles tiene esa identidad:
 
 ```bash
 gcloud projects get-iam-policy ah-estefania-alozno \
   --flatten="bindings[].members" \
-  --filter="bindings.members:$(gcloud config get-value account)" \
+  --filter="bindings.members:elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com" \
   --format="table(bindings.role)"
 ```
 
-Roles mínimos que debe poder ejercer la identidad usada por Cloud Run (verificar, no forzar
-un rediseño de IAM en el MVP):
+Roles otorgados a nivel de proyecto (y por qué cada uno):
 
 ```text
-roles/bigquery.dataViewer
-roles/bigquery.jobUser
-roles/aiplatform.user
-roles/datastore.user      (Firestore)
-roles/run.developer        (para desplegar)
+roles/bigquery.dataViewer      — leer semantic_documents / entity_embeddings_vertex
+roles/bigquery.jobUser         — ejecutar las queries VECTOR_SEARCH
+roles/bigquery.connectionUser  — requerido por ML.GENERATE_EMBEDDING para usar la BigQuery
+                                  connection `vertex_ai_connection` (no es obvio: sin este rol
+                                  la tool RAG falla con 403 "bigquery.connections.use" aunque
+                                  la SA ya tenga dataViewer/jobUser)
+roles/aiplatform.user          — llamadas a Gemini vía Vertex AI
+roles/datastore.user           — Firestore (memoria de jugador, sesiones, transcript)
 ```
 
-Post-MVP (TODO-05, no ejecutar salvo pedido explícito): crear `elden-ring-agent-sa` dedicada
-con esos mismos roles y nada más, y mover Cloud Run a usarla con
-`gcloud run services update ... --service-account=elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com`.
+Además, `roles/secretmanager.secretAccessor` está otorgado **solo sobre el secreto
+`jwt-secret`** (no a nivel proyecto):
+
+```bash
+gcloud secrets get-iam-policy jwt-secret --project ah-estefania-alozno
+```
+
+`roles/run.developer` **no** se le dio a esta SA — es un permiso para *desplegar* Cloud Run
+(identidad del operador/CI), no algo que el propio servicio en ejecución necesite.
+
+Si hace falta recrear esto desde cero:
+
+```bash
+gcloud iam service-accounts create elden-ring-agent-sa \
+  --project ah-estefania-alozno \
+  --display-name="Elden Ring Agent (Cloud Run runtime, least privilege)"
+
+for ROLE in roles/bigquery.dataViewer roles/bigquery.jobUser roles/bigquery.connectionUser \
+            roles/aiplatform.user roles/datastore.user; do
+  gcloud projects add-iam-policy-binding ah-estefania-alozno \
+    --member="serviceAccount:elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com" \
+    --role="$ROLE"
+done
+
+gcloud secrets add-iam-policy-binding jwt-secret \
+  --project ah-estefania-alozno \
+  --member="serviceAccount:elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud run services update elden-ring-agent \
+  --project ah-estefania-alozno --region us-central1 \
+  --service-account=elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com
+```
+
+Después de tocar IAM de esta SA, siempre correr un smoke test real de `/chat` (no solo
+`/health`, que no toca BigQuery/Firestore/Vertex) — usar una cuenta QA (`qa-test-chatux`, ver
+`SYSTEM_HEARTBEAT.md`), nunca las cuentas reales del roster.
 
 ## 5. Deploy a Cloud Run (Fase 8, PRD §33)
 

@@ -54,11 +54,18 @@ No los vuelvas a crear/verificar desde cero — ya existen:
   Run). **URL real — es la app completa, frontend incluido**:
   `https://elden-ring-agent-704637212685.us-central1.run.app`
 - Secret Manager: secreto `jwt-secret` (JWT_SECRET real, fuerte, generado con
-  `secrets.token_urlsafe`), montado en Cloud Run vía `--set-secrets`. La service account de
-  Cloud Run (`704637212685-compute@developer.gserviceaccount.com`, rol `roles/editor` +
-  `roles/storage.objectViewer` + `roles/secretmanager.secretAccessor` sobre `jwt-secret`)
-  necesitó ambos roles extra a mano — el `roles/editor` por defecto NO alcanza para que Cloud
-  Build lea el source subido ni para leer el secreto en runtime.
+  `secrets.token_urlsafe`), montado en Cloud Run vía `--set-secrets`.
+- **IAM — TODO-05 completado (2026-09-06):** Cloud Run ya NO corre con la default compute
+  service account (`704637212685-compute@developer.gserviceaccount.com`, que tenía
+  `roles/editor` amplio). Ahora usa una SA dedicada de privilegios mínimos:
+  `elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com`, con solo
+  `bigquery.dataViewer`, `bigquery.jobUser`, `bigquery.connectionUser`, `aiplatform.user`,
+  `datastore.user` (proyecto) y `secretmanager.secretAccessor` (scoped solo al secreto
+  `jwt-secret`, no a nivel proyecto). Detalle completo y comandos para recrearlo desde cero:
+  skill `gcp-provisioning` §4. Nota no obvia: `roles/bigquery.connectionUser` fue necesario
+  porque `ML.GENERATE_EMBEDDING` (usado por la tool RAG) pasa por la BigQuery connection
+  `vertex_ai_connection`; sin ese rol el chat fallaba con 403 aunque la SA ya tuviera
+  dataViewer/jobUser. Verificado end-to-end con la cuenta QA `qa-test-chatux`.
 - Firestore: base `(default)`, modo Native, región `us-central1`. Colecciones en uso:
   `users`, `player_profiles`, `chat_sessions`, `chat_sessions/{id}/messages`.
 - BigQuery: `elden_ring_gold.entity_embeddings_vertex` ya existe (1208 filas, ver
