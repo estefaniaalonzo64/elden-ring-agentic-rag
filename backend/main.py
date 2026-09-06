@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.agent.runner import run_turn
 from backend.auth.dependencies import get_current_user_id
@@ -9,16 +11,6 @@ from backend.models.api import ChatRequest, ChatResponse, LoginRequest, LoginRes
 from backend.repositories.firestore_repository import add_chat_message, get_chat_session
 
 app = FastAPI(title="Elden Ring Agentic RAG Guide")
-
-# Permissive CORS is accepted MVP debt (PRD TODO-06): the Apps Script/Sites origin isn't
-# known/stable ahead of deploy, and /chat still requires a valid Bearer token regardless of
-# origin, so real security doesn't depend on this. Restrict origins post-MVP.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.get("/health")
@@ -51,6 +43,13 @@ def chat_endpoint(
     message, sources = run_turn(user_id, payload.session_id, payload.message)
     add_chat_message(payload.session_id, role="assistant", content=message, sources=sources)
     return ChatResponse(message=message, sources=sources)
+
+
+# Frontend estático servido por el mismo FastAPI (mismo origen que /login, /chat — sin CORS).
+# Se monta al final para no tapar las rutas de API de arriba.
+_frontend = Path(__file__).parent.parent / "frontend"
+if _frontend.exists():
+    app.mount("/", StaticFiles(directory=str(_frontend), html=True), name="frontend")
 
 
 if __name__ == "__main__":

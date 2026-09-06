@@ -28,32 +28,26 @@ docker build -t elden-ring-agent .
 docker run -p 8080:8080 --env-file .env elden-ring-agent
 ```
 
-## Frontend (Google Apps Script)
+## Frontend (estático, servido por el mismo backend)
 
-Código en [`frontend/apps-script/`](./frontend/apps-script/) (`Code.gs`, `Index.html`,
-`styles.html`, `script.html`). El navegador llama al backend directamente vía `fetch()`
-(por eso el backend habilita CORS permisivo — ver TODO-06 en el PRD).
+Código en [`frontend/`](./frontend/) (`index.html`, `app.js`, `styles.css`) — sin build,
+sin dependencias propias. `backend/main.py` lo monta con `StaticFiles` en `/`, **mismo
+origen** que `/login`/`/chat` (sin CORS). Login/logout usan estado en memoria de JS, nunca
+`localStorage` (PRD §25.4). El chat renderiza Markdown real (`marked` + `DOMPurify` vía CDN)
+para que `**bold**`/`### headers` de las respuestas del agente se vean bien.
 
-**Ya está publicado.** Proyecto Apps Script creado y deployado vía `clasp`
-(script id en `frontend/apps-script/.clasp.json`, detalle completo en
-`SYSTEM_HEARTBEAT.md`). URL pública del Web App:
+> Se abandonó el frontend Apps Script/Google Sites original (PRD §25–§27, Fase 7/9): se
+> publicó y funcionaba desde `curl`, pero el navegador real nunca pudo renderizarlo (ver
+> "Desviación de arquitectura" en `SYSTEM_HEARTBEAT.md`). Este frontend estático reemplaza
+> esa parte del PRD — la URL de Cloud Run de abajo **es** la app completa, no hace falta
+> Google Sites.
+
+**Ya está desplegado**, junto con el backend, en la misma URL de Cloud Run:
 
 ```
-https://script.google.com/macros/s/AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM/exec
+https://elden-ring-agent-704637212685.us-central1.run.app
 ```
 
-Pendiente: setear `BACKEND_URL` en Script Properties una vez exista la URL de Cloud Run
-(Fase 8) — hasta entonces el login/chat muestran "BACKEND_URL no está configurado".
-
-Para volver a publicar cambios de código:
-
-```bash
-cd frontend/apps-script
-clasp push --force
-```
-
-`appsscript.json` usa `webapp.access: "ANYONE_ANONYMOUS"` (sin login de Google) +
-`webapp.executeAs: "USER_DEPLOYING"` — esa combinación es obligatoria: `ANYONE_ANONYMOUS`
-no es compatible con `USER_ACCESSING` (no hay identidad de usuario que "ejecutar como" si
-el acceso es anónimo). Ver el gotcha #5 en `SYSTEM_HEARTBEAT.md` si esto cambia y `clasp
-push` empieza a fallar con "Invalid manifest file".
+Para volver a publicar cambios (de frontend o backend): mismo comando `gcloud run deploy`
+de la sección Docker/Cloud Run (ver `SYSTEM_HEARTBEAT.md` para el comando completo con env
+vars) — `frontend/` ya se copia a la imagen (`Dockerfile`).

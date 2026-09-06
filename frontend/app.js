@@ -1,4 +1,3 @@
-<script>
 (function () {
   'use strict';
 
@@ -18,7 +17,7 @@
     var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
     if (state.token) headers.Authorization = 'Bearer ' + state.token;
 
-    return fetch(BACKEND_URL + path, Object.assign({}, options, { headers: headers }))
+    return fetch(path, Object.assign({}, options, { headers: headers }))
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (data) {
           if (!response.ok) throw new Error(data.detail || 'Request failed (' + response.status + ')');
@@ -31,12 +30,19 @@
     qs('messages').innerHTML = '';
   }
 
+  function renderMarkdown(text) {
+    if (window.marked && window.DOMPurify) {
+      return window.DOMPurify.sanitize(window.marked.parse(text, { breaks: true, gfm: true }));
+    }
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   function appendMessage(role, text, sources) {
     var container = qs('messages');
 
     var bubble = document.createElement('div');
     bubble.className = 'message ' + role;
-    bubble.textContent = text;
+    bubble.innerHTML = renderMarkdown(text);
     container.appendChild(bubble);
 
     if (sources && sources.length) {
@@ -50,38 +56,6 @@
 
     container.scrollTop = container.scrollHeight;
   }
-
-  qs('go-to-register').addEventListener('click', function (event) {
-    event.preventDefault();
-    qs('register-error').textContent = '';
-    showScreen('screen-register');
-  });
-
-  qs('go-to-login').addEventListener('click', function (event) {
-    event.preventDefault();
-    qs('login-error').textContent = '';
-    showScreen('screen-login');
-  });
-
-  qs('register-form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    qs('register-error').textContent = '';
-
-    var username = qs('register-username').value.trim();
-    var password = qs('register-password').value;
-
-    apiFetch('/register', {
-      method: 'POST',
-      body: JSON.stringify({ username: username, password: password })
-    })
-      .then(function () {
-        qs('login-username').value = username;
-        qs('login-password').value = '';
-        qs('login-error').textContent = '';
-        showScreen('screen-login');
-      })
-      .catch(function (err) { qs('register-error').textContent = err.message; });
-  });
 
   qs('login-form').addEventListener('submit', function (event) {
     event.preventDefault();
@@ -129,9 +103,4 @@
       .then(function (data) { appendMessage('assistant', data.message, data.sources); })
       .catch(function (err) { appendMessage('assistant', 'Error: ' + err.message); });
   });
-
-  if (!BACKEND_URL) {
-    qs('login-error').textContent = 'BACKEND_URL no está configurado (Script Properties del proyecto Apps Script).';
-  }
 })();
-</script>
