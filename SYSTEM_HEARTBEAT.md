@@ -15,18 +15,27 @@ al terminar su turno: qué hizo, qué encontró, qué falta. No es documentació
 | 4 | RAG (`search_elden_ring_knowledge`) | ✅ hecho, validado contra BigQuery real (5 queries de aceptación del handoff) |
 | 5 | ADK (`EldenRingGuideAgent`, `/chat`) | ✅ hecho, validado contra Gemini/Vertex AI real |
 | 6 | Transcript (`chat_sessions/{id}/messages`) | ✅ hecho, validado (sobrevive logout, aislamiento A/B) |
-| 7 | Frontend Apps Script (Login/Registro/Chat) | ✅ **publicado** como Web App, ver URL abajo. Falta setear `BACKEND_URL` (depende de Fase 8) |
-| 8 | Cloud Run (deploy real) | ⏳ pendiente — siguiente paso natural |
-| 9 | Google Sites (embed) | ⏳ pendiente — depende de 8 (URL real de Cloud Run) |
+| 7 | Frontend Apps Script (Login/Registro/Chat) | ✅ **publicado y funcionando** end-to-end (login+chat validados contra el backend real) |
+| 8 | Cloud Run (deploy real) | ✅ desplegado y validado (`/health`, `/login`, `/chat` reales) |
+| 9 | Google Sites (embed) | ⏳ pendiente — único paso manual que falta (crear el Site, incrustar la URL del Web App) |
 | 10 | Evaluación (manual + LLM-as-judge) | ⏳ pendiente |
 
 ## Recursos GCP ya provisionados (proyecto `ah-estefania-alozno`)
 
 No los vuelvas a crear/verificar desde cero — ya existen:
 
-- APIs habilitadas: `firestore.googleapis.com`, `aiplatform.googleapis.com`, `bigquery.googleapis.com`
-  (+ sub-APIs de BigQuery). **NO habilitadas todavía**: `run.googleapis.com`,
-  `cloudbuild.googleapis.com`, `artifactregistry.googleapis.com` — se necesitan para Fase 8.
+- APIs habilitadas: `firestore.googleapis.com`, `aiplatform.googleapis.com`,
+  `bigquery.googleapis.com` (+ sub-APIs), `run.googleapis.com`, `cloudbuild.googleapis.com`,
+  `artifactregistry.googleapis.com`, `secretmanager.googleapis.com`.
+- Cloud Run: servicio `elden-ring-agent` en `us-central1`, desplegado desde `--source .`
+  (Dockerfile), `--allow-unauthenticated` (autenticación la maneja la app, no IAM de Cloud
+  Run). URL real: `https://elden-ring-agent-704637212685.us-central1.run.app`.
+- Secret Manager: secreto `jwt-secret` (JWT_SECRET real, fuerte, generado con
+  `secrets.token_urlsafe`), montado en Cloud Run vía `--set-secrets`. La service account de
+  Cloud Run (`704637212685-compute@developer.gserviceaccount.com`, rol `roles/editor` +
+  `roles/storage.objectViewer` + `roles/secretmanager.secretAccessor` sobre `jwt-secret`)
+  necesitó ambos roles extra a mano — el `roles/editor` por defecto NO alcanza para que Cloud
+  Build lea el source subido ni para leer el secreto en runtime.
 - Firestore: base `(default)`, modo Native, región `us-central1`. Colecciones en uso:
   `users`, `player_profiles`, `chat_sessions`, `chat_sessions/{id}/messages`.
 - BigQuery: `elden_ring_gold.entity_embeddings_vertex` ya existe (1208 filas, ver
@@ -69,6 +78,19 @@ No los vuelvas a crear/verificar desde cero — ya existen:
    manifest real usa `"webapp"` (minúsculas) — `"webApp"` da `unknown fields: [webApp]`.
 6. **`clasp` vía el binario de Windows desde WSL es lento** (cada invocación puede tardar
    >60s, el Bash tool las manda a background) — es normal, no es que algo esté colgado.
+7. **`gcloud run deploy --source .` con la service account por defecto necesita 2 roles
+   extra que `roles/editor` NO cubre**: `roles/storage.objectViewer` (para que el build de
+   Cloud Build pueda leer el .zip de fuente subido a GCS — sin esto falla con
+   `PERMISSION_DENIED... could not resolve source`) y, si usas `--set-secrets`,
+   `roles/secretmanager.secretAccessor` otorgado **sobre el secreto específico**
+   (`gcloud secrets add-iam-policy-binding`), no solo a nivel proyecto. Ambos son fixes
+   de una sola vez por proyecto, no hace falta repetirlos en redeploys futuros.
+8. **Abrir `script.google.com/d/<scriptId>/edit` puede fallar** ("No se pudo abrir el
+   archivo en este momento") incluso con la cuenta correcta ya logueada en el navegador —
+   pasó en esta sesión sin causa clara (¿propagación de Drive para proyectos creados vía API?
+   ¿caché del navegador?). El formato alterno `script.google.com/home/projects/<scriptId>/edit`
+   sí funcionó. Si un usuario reporta esto, prueba esa URL antes de asumir que es un problema
+   de cuenta/permisos.
 
 ## Registro cerrado (decisión del usuario, 2026-09-05)
 
@@ -89,47 +111,61 @@ tokens de Gemini. Cambios:
 
 ## Bloqueos activos
 
-- Ninguno bloqueante ahora mismo. `clasp` ya está instalado y logueado (vía npm de Windows,
-  `/mnt/c/Users/estef/AppData/Roaming/npm/clasp`), y el Web App de Fase 7 ya está publicado
-  (ver sección Frontend abajo). El único pendiente real es Fase 8 (Cloud Run) para tener una
-  `BACKEND_URL` real que setear en las Script Properties del proyecto Apps Script.
+Ninguno. Backend real desplegado y frontend publicado, ambos validados end-to-end
+(login+chat reales, ver Frontend/Backend abajo). Lo único que falta es Fase 9 (crear el
+Google Site e incrustar la URL del Web App) y Fase 10 (evaluación) — ambos pasos manuales o
+de contenido, no bloqueados por infraestructura.
 
-## Frontend publicado (Fase 7)
+## Backend en Cloud Run (Fase 8)
 
-- Script ID: `1G7TWkov2cmtmMezsRpyPzIAUvGG9N-wGIgWTJRa-4hmeHwkUPkXtSB9R`
-  (editor: `clasp open-script` desde `frontend/apps-script/`, o
-  `https://script.google.com/d/<scriptId>/edit`).
-- Deployment id `AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM`
-  (descripción "Elden Ring Guide MVP", versión 1).
-- **URL pública del Web App** (confirmado `curl` → HTTP 200, sirve el HTML real):
+- Servicio: `elden-ring-agent`, región `us-central1`, proyecto `ah-estefania-alozno`.
+- URL: `https://elden-ring-agent-704637212685.us-central1.run.app`.
+- Validado con curl real: `/health` → 200, `/login` (los 3 usuarios reales) → 200, `/chat`
+  completo (RAG + Gemini + fuentes, en español e inglés) → 200.
+- Redeploy tras cambios de código: mismo comando `gcloud run deploy elden-ring-agent
+  --project ah-estefania-alozno --region us-central1 --source . --allow-unauthenticated
+  --port 8080 --set-env-vars BQ_VERTEX_REMOTE_MODEL=elden_ring_embedding_model,VERTEX_EMBEDDING_MODEL=gemini-embedding-001,GEMINI_MODEL=gemini-2.5-flash,VERTEX_LOCATION=us-central1
+  --set-secrets JWT_SECRET=jwt-secret:latest` (los env vars con default correcto en
+  `backend/config.py` no hace falta repetirlos — ver esa tabla si agregas uno nuevo).
+
+## Frontend publicado (Fase 7) — funcionando end-to-end
+
+- Script ID: `1G7TWkov2cmtmMezsRpyPzIAUvGG9N-wGIgWTJRa-4hmeHwkUPkXtSB9R`. Editor:
+  `https://script.google.com/home/projects/<scriptId>/edit` (el formato `/d/<id>/edit` le
+  falló al usuario en esta sesión, ver gotcha #8 — usa `/home/projects/` si vuelve a pasar).
+- Deployment id `AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM`.
+- **URL pública del Web App**:
   `https://script.google.com/macros/s/AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM/exec`
-- **Falta**: entrar al editor (`clasp open-script`) → Project Settings → Script Properties →
-  agregar `BACKEND_URL` = URL de Cloud Run (Fase 8). Sin eso, el login/chat fallan con
-  "BACKEND_URL no está configurado" (mensaje intencional en `script.html`).
+- Script Property `BACKEND_URL` ya seteada por el usuario (manual, vía Project Settings →
+  Script Properties) apuntando al Cloud Run real de arriba. Confirmado con curl que el HTML
+  servido ya trae el valor correcto inyectado.
+- Login + chat probados end-to-end (simulando el fetch del navegador con
+  `Origin: https://script.google.com`) — funciona completo, en español e inglés, formato de
+  fuentes correcto.
 - Para repushear tras cambios de código: `cd frontend/apps-script && clasp push --force`. Para
   una nueva versión del deployment: `clasp create-deployment --deploymentId <id> -d "..."`
   (o `redeploy`), no crear un deployment nuevo cada vez salvo que quieras otra URL.
 
 ## Config local
 
-- `.env` existe local (gitignored) con valores reales de dev: `GEMINI_MODEL=gemini-2.5-flash`,
-  `VERTEX_LOCATION=us-central1`, resto de `.env.example`. `JWT_SECRET` es un placeholder corto
-  (`<secret>`) — bueno para dev, cambiar antes de un deploy real (Fase 8 debería usar Secret
-  Manager, ver skill `gcp-provisioning`).
+- `.env` existe local (gitignored) con los mismos valores que se usaron para Cloud Run:
+  `GEMINI_MODEL=gemini-2.5-flash`, `VERTEX_LOCATION=us-central1`, resto de `.env.example`.
+  `JWT_SECRET` local sigue siendo el placeholder corto de dev — el real y fuerte vive solo en
+  Secret Manager (`jwt-secret`), no en este repo ni en `.env`.
 - Tests: `.venv/bin/python -m pytest tests/` → 26 passed (todo mockeado, no pega a GCP).
-  Validación contra infra real se hizo manualmente vía smoke tests con `curl`/scripts sueltos
-  durante el desarrollo — no quedaron como tests automatizados de integración.
+  Validación contra infra real (Firestore/BigQuery/Vertex AI/Cloud Run/Apps Script) se hizo
+  manualmente vía smoke tests con `curl` durante el desarrollo — no quedaron como tests
+  automatizados de integración.
 
 ## Próximo paso sugerido
 
-Fase 8 — Cloud Run: habilitar `run.googleapis.com`/`cloudbuild.googleapis.com`/
-`artifactregistry.googleapis.com`, `gcloud run deploy` (ver skill `gcp-provisioning` §5),
-smoke test `/health` + `/login` (con uno de los 3 usuarios reales) contra la URL real. Luego:
-setear `BACKEND_URL` en las Script Properties del Apps Script ya publicado (Fase 7, ver
-arriba) y validar login+chat desde
-`https://script.google.com/macros/s/AKfycbyVXj.../exec` antes de pasar a Fase 9 (Sites).
+Fase 9 — Google Sites: crear el Site, incrustar la URL del Web App de arriba (por URL/iframe
+según lo permita Apps Script — `setXFrameOptionsMode(ALLOWALL)` ya está puesto en `Code.gs`
+para que el embed funcione), validar login+chat+logout desde la URL final de Sites. Después,
+Fase 10 — Evaluación (`evaluation/cases.yaml`, manual + LLM-as-judge, skill `evaluation`).
 
 ---
-*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — Fase 7 publicada (Web App
-real arriba) + registro público eliminado (roster cerrado de 3 usuarios). Actualiza esta
-sección al cerrar tu turno: fecha, qué cambiaste, qué falta.*
+*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — Fase 8 (Cloud Run) y Fase 7
+(Apps Script) completas y validadas end-to-end contra infraestructura real. Quedan Fase 9
+(Sites, manual) y Fase 10 (Evaluación). Actualiza esta sección al cerrar tu turno: fecha, qué
+cambiaste, qué falta.*
