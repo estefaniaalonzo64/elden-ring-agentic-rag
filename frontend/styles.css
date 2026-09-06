@@ -34,6 +34,10 @@ html, body {
   min-height: 100%;
 }
 
+#screen-chat {
+  max-width: 960px;
+}
+
 h1 {
   font-size: 22px;
   letter-spacing: 0.04em;
@@ -89,6 +93,105 @@ button.secondary {
   justify-content: space-between;
 }
 
+.chat-layout {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+}
+
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#conversations-panel {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+  overflow-y: auto;
+}
+
+.conversations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conversations-header h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.conversations-header button {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+#conversations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.conversation-item {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.conversation-item:hover {
+  border-color: var(--accent);
+}
+
+.conversation-item.active {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+
+.conversation-preview {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-date {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.conversations-empty {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+
+#thinking-indicator {
+  color: var(--muted);
+  font-size: 14px;
+  font-style: italic;
+  margin: 0;
+}
+
 #messages {
   flex: 1;
   overflow-y: auto;
@@ -96,6 +199,21 @@ button.secondary {
   flex-direction: column;
   gap: 10px;
   padding: 8px 0;
+}
+
+@media (max-width: 640px) {
+  .chat-layout {
+    flex-direction: column;
+  }
+
+  #conversations-panel {
+    width: auto;
+    max-height: 160px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
 }
 
 .message {

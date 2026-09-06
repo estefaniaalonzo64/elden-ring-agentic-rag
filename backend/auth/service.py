@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
 
 from backend.config import get_settings
-from backend.repositories.firestore_repository import (
-    create_chat_session,
-    create_user,
-    get_user_by_username,
-)
+from backend.repositories.firestore_repository import create_user, get_user_by_username
 
 PBKDF2_ITERATIONS = 260_000
 JWT_ALGORITHM = "HS256"
@@ -49,7 +46,9 @@ def authenticate(username: str, password: str) -> tuple[str, str]:
 
     user_id = user["user_id"]
     token = _create_token(user_id)
-    session_id = create_chat_session(user_id)
+    # Not persisted to Firestore here — chat_endpoint creates the chat_session lazily
+    # on the first real message, so logins with no interaction leave no trace.
+    session_id = str(uuid.uuid4())
     return token, session_id
 
 

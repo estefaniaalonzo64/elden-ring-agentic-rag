@@ -6,7 +6,6 @@ def fake_users_db(monkeypatch):
     import backend.auth.service as auth_service
 
     users: dict[str, dict] = {}
-    sessions: dict[str, dict] = {}
 
     def fake_get_user_by_username(username):
         return users.get(username.strip().lower())
@@ -21,14 +20,8 @@ def fake_users_db(monkeypatch):
         }
         return user_id
 
-    def fake_create_chat_session(user_id):
-        session_id = f"session-{len(sessions) + 1}"
-        sessions[session_id] = {"session_id": session_id, "user_id": user_id}
-        return session_id
-
     monkeypatch.setattr(auth_service, "get_user_by_username", fake_get_user_by_username)
     monkeypatch.setattr(auth_service, "create_user", fake_create_user)
-    monkeypatch.setattr(auth_service, "create_chat_session", fake_create_chat_session)
 
     return users
 

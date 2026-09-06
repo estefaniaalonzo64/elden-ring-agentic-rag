@@ -25,11 +25,23 @@
       <h1>Elden Ring Guide</h1>
       <button type="button" id="logout-button" class="secondary">Cerrar sesión</button>
     </header>
-    <div id="messages"></div>
-    <form id="chat-form">
-      <textarea id="chat-input" placeholder="Pregunta algo sobre Elden Ring..." rows="2" required></textarea>
-      <button type="submit">Enviar</button>
-    </form>
+    <div class="chat-layout">
+      <aside id="conversations-panel">
+        <div class="conversations-header">
+          <h2>Mis conversaciones</h2>
+          <button type="button" id="new-conversation-button" class="secondary">Nueva</button>
+        </div>
+        <ul id="conversations-list"></ul>
+      </aside>
+      <div class="chat-main">
+        <div id="messages"></div>
+        <p id="thinking-indicator" hidden>Pensando...</p>
+        <form id="chat-form">
+          <textarea id="chat-input" placeholder="Pregunta algo sobre Elden Ring..." rows="2" required></textarea>
+          <button type="submit" id="chat-submit">Enviar</button>
+        </form>
+      </div>
+    </div>
   </section>
 
   <script src="/app.js"></script>

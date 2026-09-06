@@ -27,8 +27,9 @@ Chat
 
 **No hay pantalla de Registro** — el registro público está cerrado (ver skill
 `auth-service` / `SYSTEM_HEARTBEAT.md`, "Registro cerrado"). Los usuarios son un roster fijo
-creado con `scripts/create_user.py`. No agregar historial de conversaciones, feedback 👍👎,
-ni endpoints administrativos en la UI — son TODO-01/02/03, explícitamente fuera del MVP.
+creado con `scripts/create_user.py`. TODO-01 (historial navegable) ya está implementado — ver
+"Panel de conversaciones" más abajo. Feedback 👍👎 (TODO-02) y endpoints administrativos de
+otros usuarios (TODO-03) siguen explícitamente fuera del MVP.
 
 ## Login
 
@@ -56,6 +57,23 @@ Cada mensaje enviado va a `POST /chat` con `Authorization: Bearer <token>` y
 `DOMPurify`, ambos vía CDN — las respuestas del agente traen `**bold**`/`### headers` reales
 que se ven mal como texto plano) y, si vienen, las `sources` de la respuesta (formato simple
 `entity_type · name`, nunca el `entity_id` crudo ni score/distancia).
+
+Mientras la respuesta de `POST /chat` está pendiente, se muestra un indicador de progreso
+("Pensando..." / "Buscando información...") y se deshabilita el botón de envío, para que la UI
+nunca parezca congelada durante la vuelta RAG + LLM. Se oculta tanto en éxito como en error.
+
+### Panel de conversaciones (TODO-01, implementado)
+
+La pantalla de Chat incluye un panel "Mis conversaciones" que lista las `chat_sessions`
+propias del usuario autenticado (`GET /sessions`, más recientes primero, con preview del
+primer mensaje) — por construcción solo aparecen ahí las que ya tienen al menos un mensaje
+(ver skill `player-memory`, "Sesión nueva por login": la creación en Firestore es perezosa, no
+al loguearse ni al pedir una nueva). Al hacer click en una, se carga su transcript completo
+(`GET /sessions/{id}/messages`) en el área de mensajes y los mensajes nuevos se agregan a esa
+misma conversación. El botón "Nueva conversación" (`POST /sessions`) solo entrega un
+`session_id` nuevo, sin necesidad de cerrar sesión y volver a loguearse — esa conversación
+recién aparecerá en el panel una vez que se le envíe el primer mensaje. Las tres rutas están
+filtradas por el `user_id` del token, igual que `/chat`.
 
 ## Estado y logout
 

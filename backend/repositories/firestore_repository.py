@@ -39,8 +39,11 @@ def create_user(username: str, password_hash: str, password_salt: str) -> str:
     return user_id
 
 
-def create_chat_session(user_id: str) -> str:
-    session_id = str(uuid.uuid4())
+def create_chat_session(user_id: str, session_id: str | None = None) -> str:
+    # Called lazily on the first real message (backend/main.py:chat_endpoint), not at
+    # login/POST /sessions time — a session_id handed to the client is only worth
+    # persisting once there is an actual interaction to attach to it.
+    session_id = session_id or str(uuid.uuid4())
     get_firestore_client().collection("chat_sessions").document(session_id).set(
         {
             "session_id": session_id,
@@ -55,6 +58,27 @@ def create_chat_session(user_id: str) -> str:
 def get_chat_session(session_id: str) -> dict[str, Any] | None:
     doc = get_firestore_client().collection("chat_sessions").document(session_id).get()
     return doc.to_dict() if doc.exists else None
+
+
+def list_chat_sessions(user_id: str) -> list[dict[str, Any]]:
+    # Sorted in Python, not via Firestore order_by(), to avoid requiring a
+    # manually-provisioned composite index (user_id ==, created_at) for what
+    # is at most a few dozen documents per user (P-05 cost conscious).
+    query = get_firestore_client().collection("chat_sessions").where("user_id", "==", user_id)
+    sessions = [doc.to_dict() for doc in query.stream()]
+    sessions.sort(key=lambda session: session["created_at"], reverse=True)
+    return sessions
+
+
+def get_chat_messages(session_id: str) -> list[dict[str, Any]]:
+    query = (
+        get_firestore_client()
+        .collection("chat_sessions")
+        .document(session_id)
+        .collection("messages")
+        .order_by("created_at", direction=firestore.Query.ASCENDING)
+    )
+    return [doc.to_dict() for doc in query.stream()]
 
 
 def add_chat_message(

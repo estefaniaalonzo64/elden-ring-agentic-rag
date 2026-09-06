@@ -97,10 +97,20 @@ Debe borrar **solo** los campos pedidos (dotted path), dejando el resto del perf
 
 ## Sesión nueva por login (§15.2)
 
-Cada login crea una `chat_sessions/{session_id}` nueva para evitar contexto infinito y reducir
-tokens — esto es responsabilidad conjunta con `auth-service`, no de este skill en solitario.
-El transcript de sesiones anteriores permanece en Firestore aunque no se muestre en el MVP
-(TODO-01 es el selector de historial, fuera de alcance).
+Cada login entrega un `session_id` nuevo para evitar contexto infinito y reducir tokens — esto
+es responsabilidad conjunta con `auth-service`, no de este skill en solitario. Ese `session_id`
+**no** se escribe en Firestore todavía en ese momento: el `chat_session` se crea de forma
+perezosa, la primera vez que llega un mensaje real por `POST /chat` para ese id (igual con
+`POST /sessions` al pedir una conversación nueva). Así, iniciar sesión o pedir una conversación
+nueva sin llegar a escribir nada no deja un `chat_session` vacío en Firestore.
+
+El transcript de sesiones anteriores permanece en Firestore y ya es navegable desde el frontend
+(TODO-01 implementado — ver skill `frontend-delivery`, panel "Mis conversaciones"): `GET
+/sessions` lista los `chat_sessions` propios del usuario autenticado (por construcción, solo
+existen los que ya tienen al menos un mensaje), `GET /sessions/{session_id}/messages` devuelve
+su transcript, y `POST /sessions` entrega un `session_id` nuevo (sin persistirlo) para empezar
+una conversación sin pasar por `/login`. Las tres rutas filtran siempre por el `user_id` del
+token, igual que `POST /chat`.
 
 ## Aislamiento — la regla que no se puede romper
 

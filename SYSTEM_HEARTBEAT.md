@@ -198,7 +198,8 @@ opcional/de pulido — no hay pendientes bloqueantes.
   `GEMINI_MODEL=gemini-2.5-flash`, `VERTEX_LOCATION=us-central1`, resto de `.env.example`.
   `JWT_SECRET` local sigue siendo el placeholder corto de dev — el real y fuerte vive solo en
   Secret Manager (`jwt-secret`), no en este repo ni en `.env`.
-- Tests: `.venv/bin/python -m pytest tests/` → 26 passed (todo mockeado, no pega a GCP).
+- Tests: `.venv/bin/python -m pytest tests/` → 35 passed a la fecha (todo mockeado, no pega
+  a GCP; ver "Mejoras post-MVP" para lo agregado en `test_chat_history.py`).
   Validación contra infra real (Firestore/BigQuery/Vertex AI/Cloud Run) se hizo manualmente
   vía smoke tests con `curl` durante el desarrollo — no quedaron como tests automatizados de
   integración.
@@ -221,18 +222,85 @@ opcional/de pulido — no hay pendientes bloqueantes.
   duplicado de Malenia en el corpus) y la narrativa completa de la desviación Apps
   Script→frontend estático — no es un documento "maquillado", refleja lo que realmente pasó.
 
+## Mejoras post-MVP (2026-09-06) — historial de chats, indicador de progreso, fix de memoria
+
+El usuario pidió tres mejoras sobre el MVP ya cerrado. Gestionadas como OpenSpec change
+`improve-chat-ux` (`openspec/changes/improve-chat-ux/`, ver `proposal.md`/`specs/`/`design.md`/
+`tasks.md` para el detalle completo — aquí solo el resumen operativo):
+
+- **Historial de conversaciones (TODO-01, ahora implementado)**: `GET /sessions` (lista las
+  `chat_sessions` propias, más recientes primero, con preview del primer mensaje),
+  `GET /sessions/{id}/messages` (transcript completo), `POST /sessions` (conversación nueva).
+  Las tres filtran por `user_id` del JWT, igual que `/chat`. Frontend: panel "Mis
+  conversaciones" en la pantalla de Chat + botón "Nueva conversación" (`frontend/index.html`,
+  `app.js`, `styles.css`).
+- **Indicador de progreso**: "Pensando..."/"Buscando información..." visible mientras
+  `POST /chat` está en curso, se oculta en éxito o error, bloquea reenvío duplicado.
+- **Bug real encontrado y corregido — memoria no se persistía**: el usuario declaró una
+  preferencia de playstyle en una conversación real y luego el agente no la recordaba.
+  Verificado contra Firestore real: `player_profiles` estaba completamente vacía pese a una
+  declaración clara de preferencia en una sesión anterior. Causa: el system instruction
+  (`backend/agent/instructions.py`) decía "detecta y persiste preferencias" mucho, pero el
+  modelo no llamaba `update_player_memory` de forma confiable, sobre todo cuando la
+  preferencia venía como respuesta a una pregunta del propio agente dentro de un flujo de
+  recomendación. Fix: regla explícita "no opcional" + paso numerado específico en el flujo de
+  recomendación diciendo que hay que llamar la tool en el mismo turno. **Verificado en vivo**
+  reproduciendo la conversación real: ahora sí crea el doc en `player_profiles` y una sesión
+  nueva (login distinto) recupera la preferencia correctamente. Esto es una corrección de
+  comportamiento del LLM vía prompt, no una garantía dura — si vuelve a fallar en otro
+  escenario, es la primera sospecha.
+- **Bug encontrado post-deploy — sesiones vacías**: la primera versión de este change hacía
+  que `POST /login` y `POST /sessions` crearan el `chat_session` en Firestore de inmediato,
+  antes de que hubiera ningún mensaje. El usuario lo notó (panel lleno de conversaciones "sin
+  mensaje") apenas unos minutos de uso real. Fix: creación perezosa — ambos endpoints ahora
+  solo generan un `session_id` (`uuid.uuid4()`) sin tocar Firestore; `POST /chat` crea el
+  `chat_session` la primera vez que ese `session_id` no existe (con el `user_id` del JWT,
+  nunca del payload), en el mismo turno del primer mensaje real. **Limpieza de datos puntual
+  ejecutada una sola vez**: se borraron 41 de 53 `chat_sessions` existentes en Firestore real
+  que no tenían ningún mensaje (incluye cuentas reales y de prueba); no hace falta repetirla,
+  con la creación perezosa no se vuelven a generar.
+- **Descubrimiento colateral**: `list_chat_sessions` con `where("user_id","==",...)
+  .order_by("created_at")` requiere un índice compuesto que Firestore no crea solo
+  (`FailedPrecondition`, confirmado contra el proyecto real). Se evitó crear el índice —
+  se ordena en Python después del `stream()`, suficiente para el volumen de este proyecto.
+- **Cuentas de prueba QA en Firestore real** (no son parte del roster de producción, ver
+  "Registro cerrado" arriba): `qa-test-chatux` / `qa-test-pass-12345` y `qa-test-chatux-b` /
+  `qa-test-pass-b-99999`, creadas con `scripts/create_user.py` para probar aislamiento A/B y
+  el fix de memoria sin tocar las cuentas reales (`estefania`, `profesor`, `usuariodex`).
+  `qa-test-chatux` tiene un `player_profiles` doc real (preferencias de prueba) y varias
+  `chat_sessions` con mensajes reales de prueba. Bórralas solo si el usuario lo pide.
+- **Redesplegado dos veces a Cloud Run** durante esta sesión: `elden-ring-agent-00005-xnq`
+  (historial + indicador + fix de memoria) y `elden-ring-agent-00006-2wg` (fix de sesiones
+  vacías). Cada redeploy se hizo con `gcloud run deploy ... --source .` **sin** repetir
+  `--set-env-vars`/`--set-secrets` — Cloud Run conserva la config de la revisión anterior
+  cuando no se la pisa explícitamente; confirmado que `GEMINI_MODEL`, `VERTEX_LOCATION`,
+  `JWT_SECRET` (Secret Manager), etc. siguieron intactos en ambos redeploys.
+- Tests: 35/35 pasan (`tests/test_chat_history.py` es nuevo, `test_chat.py`/`conftest.py` se
+  actualizaron para la creación perezosa).
+- Pendiente real, no bloqueante: no se validó el flujo completo en un navegador de verdad (el
+  entorno de esta sesión no tenía chromium/playwright) — se validó exhaustivamente vía HTTP
+  directo contra Firestore/BigQuery/Gemini reales, pero falta la pasada visual. Ver tarea 6.3
+  en `tasks.md` del change.
+
 ## Próximo paso sugerido
 
 Ninguno bloqueante — el MVP (PRD §44, con la desviación de Fase 7/9 documentada) y el PDF de
-entrega (§45) están completos. Si se retoma el proyecto, lo más valioso sería investigar por
-qué a veces se mezcla idioma (gotcha #2) con una batería más grande de casos en inglés.
+entrega (§45) están completos, y las mejoras post-MVP (historial de chats, indicador de
+progreso, fix de memoria, fix de sesiones vacías — ver sección arriba) ya están desplegadas.
+Si se retoma el proyecto, lo más valioso sería: (1) una pasada de validación visual real en
+navegador del panel de conversaciones/indicador (tarea 6.3 pendiente en
+`openspec/changes/improve-chat-ux/tasks.md`, sin bloquear nada), y (2) investigar por qué a
+veces se mezcla idioma (gotcha #2) con una batería más grande de casos en inglés.
 
 ---
-*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — se abandonó Apps
-Script/Google Sites (Fase 7/9 del PRD) por un problema de rendering nunca resuelto del lado
-de Google, y se reemplazó por un frontend estático servido directo desde el mismo FastAPI
-(patrón tomado de `ah-grupo-fundador`), desplegado y validado end-to-end en Cloud Run por el
-usuario en su navegador real. Fase 10 (Evaluación) completa: 13 casos, ambos niveles
-requeridos, todos los criterios mínimos del PRD §36 cumplidos, con un hallazgo real de
-calidad de datos upstream documentado honestamente. **Fases 1-10 completas.** Actualiza
-esta sección al cerrar tu turno: fecha, qué cambiaste, qué falta.*
+*Última actualización: 2026-09-06, sesión Claude Code (Sonnet 5) — change OpenSpec
+`improve-chat-ux`: historial de conversaciones (TODO-01) + indicador de progreso
+implementados y desplegados; en el camino se encontraron y corrigieron en vivo dos bugs
+reales (memoria no se persistía de forma confiable por instrucción débil del agente;
+`chat_sessions` vacías se creaban en cada login/POST /sessions), con limpieza puntual de 41
+sesiones vacías en Firestore real. Desplegado a Cloud Run en dos revisiones
+(`elden-ring-agent-00005-xnq`, `elden-ring-agent-00006-2wg`), ambas verificadas en vivo.
+Pendiente no bloqueante: pasada de validación visual en navegador real (sin
+chromium/playwright en este entorno). Ver sección "Mejoras post-MVP (2026-09-06)" arriba para
+el detalle completo. Actualiza esta sección al cerrar tu turno: fecha, qué cambiaste, qué
+falta.*
