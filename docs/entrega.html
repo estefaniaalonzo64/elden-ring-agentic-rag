@@ -51,7 +51,7 @@
     font-family: 'DejaVu Sans Mono', monospace; font-size: 9.5px;
     white-space: pre-wrap; border-left: 3px solid #c9a24a;
   }
-  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 10px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 10px; page-break-inside: avoid; }
   th, td { border: 1px solid #d8c9a8; padding: 4px 6px; text-align: left; vertical-align: top; }
   th { background: #f4efe4; color: #6b4a1e; }
   .badge {
@@ -63,6 +63,7 @@
   .callout {
     background: #f4efe4; border-left: 3px solid #c9a24a;
     padding: 8px 12px; margin: 10px 0; font-size: 10px;
+    page-break-inside: avoid;
   }
   .callout.honest { border-left-color: #b23b3b; background: #f7e9e6; }
   .small { font-size: 9.5px; color: #6b5c45; }
@@ -80,7 +81,7 @@
     <tr><td>Autora:</td><td>Estefanía Alonzo</td></tr>
     <tr><td>Proyecto GCP:</td><td><code>ah-estefania-alozno</code></td></tr>
     <tr><td>Servicio activo:</td><td>https://elden-ring-agent-704637212685.us-central1.run.app</td></tr>
-    <tr><td>Fecha:</td><td>Septiembre 2026</td></tr>
+    <tr><td>Fecha:</td><td>5 de septiembre de 2026</td></tr>
     <tr><td>Documento fuente:</td><td><code>PRD_Elden_Ring_Agentic_RAG_MVP.md</code></td></tr>
   </table>
 </div>
@@ -225,7 +226,6 @@ sin CORS, sin Google Sites. La URL de Cloud Run es la aplicación completa.
 </div>
 
 <!-- ============ 4. RAG ============ -->
-<div class="page-break"></div>
 <h1>4. RAG</h1>
 
 <h2>Corpus</h2>
@@ -262,12 +262,40 @@ y evita complejidad de infraestructura prematura (TODO-07). Filtro opcional por
 
 <h2>Grounding y fuentes</h2>
 <p>
-El agente solo puede afirmar hechos respaldados por <code>search_elden_ring_knowledge</code>.
-Toda respuesta factual o de recomendación cierra con una sección <code>**Sources**</code>
-listando <code>entity_type · name</code> — nunca el <code>entity_id</code> interno ni el
-score/distancia. Ante evidencia insuficiente o irrelevante, el agente responde que no tiene
-información suficiente en su base de conocimiento, en vez de usar su conocimiento
-preentrenado (validado explícitamente en la evaluación, casos <code>out-of-kb-*</code>).
+El agente <strong>no tiene un check de backend que bloquee una respuesta sin evidencia</strong>
+— el grounding aquí es una <strong>mitigación de prompt, no una garantía dura a nivel de
+código</strong>. El <em>system instruction</em> (<code>backend/agent/instructions.py</code>)
+le exige a Gemini respaldar todo hecho en resultados de <code>search_elden_ring_knowledge</code>
+y rechazar preguntas fuera de corpus con una frase fija, pero <code>backend/tools/rag.py</code>
+y el endpoint <code>/chat</code> no validan después del hecho que la respuesta final cite
+realmente las entidades recuperadas, ni impiden una respuesta si el modelo decide no llamar la
+tool. Es una política declarada, verificada empíricamente con 13 casos reales en la evaluación
+(sección 9) — no una validación técnica en tiempo de ejecución.
+</p>
+
+<table>
+<tr><th></th><th>Fuera de corpus (rechazo)</th><th>Dentro de corpus (con fuentes)</th></tr>
+<tr>
+  <td><strong>Pregunta</strong></td>
+  <td>"What is the capital of France?"</td>
+  <td>"Given what you know about me, what weapon should I use?" (tras declarar preferencia
+      por katanas)</td>
+</tr>
+<tr>
+  <td><strong>Respuesta</strong></td>
+  <td>"I don't have enough information in my knowledge base to answer that with confidence."</td>
+  <td>Recomienda Nagakiba, Meteoric Ore Blade y Uchigatana con razones ligadas al perfil.</td>
+</tr>
+<tr>
+  <td><strong>Fuentes</strong></td>
+  <td>(ninguna — correcto, no hay retrieval que citar)</td>
+  <td><code>weapon · Nagakiba</code>, <code>weapon · Meteoric Ore Blade</code>,
+      <code>weapon · Uchigatana</code></td>
+</tr>
+</table>
+<p class="small">
+Transcripts completos y reales (no fabricados): casos <code>out-of-kb-real-world</code> y
+<code>recommendation-memory</code> en <code>evaluation/transcripts.json</code>.
 </p>
 
 <!-- ============ 5. SISTEMA AGÉNTICO ============ -->
@@ -308,7 +336,6 @@ sobre-ingeniería para este alcance.
 </p>
 
 <!-- ============ 6. MEMORIA ============ -->
-<div class="page-break"></div>
 <h1>6. Memoria</h1>
 
 <p>Tres conceptos deliberadamente separados, que no deben mezclarse (P-03):</p>
@@ -361,32 +388,25 @@ congelada durante la vuelta RAG + LLM.
 </p>
 
 <div class="callout honest">
-<strong>Bug real encontrado y corregido — la memoria no se guardaba de forma confiable:</strong>
-el usuario declaró una preferencia de playstyle en una conversación real
-("agresivo, ligera, daño, no me interesa mucho usar hechizos") y, en una sesión posterior, el
-agente respondió que no recordaba nada de él. Verificado directamente contra Firestore: la
-colección <code>player_profiles</code> estaba completamente vacía pese a esa declaración
-explícita. Causa raíz: el <em>system instruction</em> le decía al modelo que detectara y
-persistiera preferencias, pero en la práctica el modelo usaba la preferencia como contexto de
-esa única respuesta y no siempre llamaba <code>update_player_memory</code> — sobre todo cuando
-la preferencia llegaba como respuesta a una pregunta del propio agente dentro de un flujo de
-recomendación. Se corrigió con una regla explícita y no ambigua en el prompt, atada al paso
-concreto del flujo de recomendación donde esto fallaba. Verificado en vivo reproduciendo la
-conversación original: ahora sí se crea el documento en <code>player_profiles</code> y una
-sesión nueva (login distinto) recupera la preferencia correctamente. Es una corrección de
-comportamiento de un LLM vía prompt, no una garantía dura a nivel de código.
+<strong>Bug real y corregido — la memoria no se guardaba de forma confiable:</strong> en una
+conversación real el usuario declaró una preferencia de playstyle y, en una sesión posterior,
+el agente no la recordaba; Firestore confirmó <code>player_profiles</code> vacío pese a la
+declaración explícita. Causa: el modelo no siempre llamaba <code>update_player_memory</code>
+cuando la preferencia llegaba como respuesta a una pregunta del propio agente dentro de un
+flujo de recomendación. Se corrigió con una regla explícita atada a ese paso del prompt, y se
+verificó reproduciendo la conversación original. <strong>Sigue siendo probabilístico:</strong>
+la extracción de memoria depende de que el modelo <em>decida</em> llamar la tool — no hay
+validación de backend que compruebe la persistencia después del hecho. El caso
+<code>recommendation-memory</code> de la evaluación (sección 9, 3 turnos: declarar preferencia
+→ recomendación que la usa) queda como prueba de regresión para este escenario exacto.
 </div>
 
 <div class="callout honest">
-<strong>Bug real encontrado y corregido — conversaciones vacías:</strong> la primera versión
-del historial navegable creaba el documento <code>chat_sessions</code> en Firestore de forma
-inmediata en cada login y en cada click de "Nueva conversación", incluso si el usuario nunca
-llegaba a escribir nada. El usuario lo notó tras minutos de uso real: el panel se llenaba de
-entradas sin mensaje. Se corrigió con creación perezosa — ambos puntos de entrada ahora solo
-generan un identificador de conversación; el documento se crea recién en <code>POST /chat</code>,
-la primera vez que ese identificador no existe, en el mismo turno del primer mensaje real. Se
-hizo además una limpieza puntual, una sola vez, de los <code>chat_sessions</code> vacíos que ya
-existían en Firestore real (41 de 53 documentos).
+<strong>Bug real y corregido — conversaciones vacías:</strong> la primera versión del historial
+creaba el documento <code>chat_sessions</code> en cada login y cada "Nueva conversación", aun
+sin mensajes; el panel se llenaba de entradas vacías. Se corrigió con creación perezosa (el
+documento se crea recién en el primer mensaje real, vía <code>POST /chat</code>) y se
+limpiaron, una sola vez, 41 de 53 documentos vacíos ya existentes en Firestore.
 </div>
 
 <!-- ============ 7. AUTENTICACIÓN ============ -->
@@ -413,7 +433,6 @@ su cargo. Los usuarios son un roster fijo (3 cuentas) creado localmente vía
 </div>
 
 <!-- ============ 8. DESPLIEGUE ============ -->
-<div class="page-break"></div>
 <h1>8. Despliegue</h1>
 
 <table>
@@ -434,14 +453,31 @@ su cargo. Los usuarios son un roster fijo (3 cuentas) creado localmente vía
   <tr><td>Secret Manager</td><td><span class="badge badge-ok">activo</span>
       <code>JWT_SECRET</code> real (fuerte, generado con <code>secrets.token_urlsafe</code>),
       nunca en variables de entorno de texto plano ni en el repo.</td></tr>
+  <tr><td>Service account (runtime)</td><td><span class="badge badge-ok">privilegios mínimos</span>
+      <code>elden-ring-agent-sa</code> dedicada, ver nota abajo (TODO-05, completado 2026-09-06).</td></tr>
 </table>
 
 <p class="small">
-Nota operativa: el IAM por defecto (<code>roles/editor</code> en la service account de Cloud
-Run) necesitó dos roles adicionales otorgados explícitamente —
-<code>roles/storage.objectViewer</code> (para que Cloud Build lea el código fuente subido) y
-<code>roles/secretmanager.secretAccessor</code> sobre el secreto específico — ninguno de los
-dos viene incluido en <code>roles/editor</code> pese a su amplitud.
+Nota operativa (deploy): la identidad que <em>despliega</em> (<code>gcloud run deploy --source
+.</code>) necesitó dos roles adicionales no incluidos en <code>roles/editor</code> pese a su
+amplitud — <code>roles/storage.objectViewer</code> (para que Cloud Build lea el código fuente
+subido) y <code>roles/secretmanager.secretAccessor</code> sobre el secreto específico. Esto es
+sobre la identidad que despliega, no sobre la que corre el servicio (ver nota siguiente).
+</p>
+
+<p class="small">
+Nota operativa (runtime, actualizado 2026-09-06): Cloud Run ya no corre con la service account
+por defecto del proyecto (<code>roles/editor</code>, deuda técnica aceptada al cierre del MVP —
+ver sección 10). Ahora usa una SA dedicada de privilegios mínimos,
+<code>elden-ring-agent-sa@ah-estefania-alozno.iam.gserviceaccount.com</code>, con solo
+<code>bigquery.dataViewer</code>, <code>bigquery.jobUser</code>,
+<code>bigquery.connectionUser</code>, <code>aiplatform.user</code> y <code>datastore.user</code>
+a nivel de proyecto, más <code>secretmanager.secretAccessor</code> restringido al secreto
+<code>jwt-secret</code> (no a nivel proyecto). Nota no obvia: <code>bigquery.connectionUser</code>
+fue necesario porque <code>ML.GENERATE_EMBEDDING</code> (tool RAG) pasa por la conexión de
+BigQuery <code>vertex_ai_connection</code> — sin ese rol el chat fallaba con 403 pese a que la
+SA ya tenía <code>dataViewer</code>/<code>jobUser</code>. Verificado end-to-end con la cuenta QA
+<code>qa-test-chatux</code> tras el cambio.
 </p>
 
 <p class="small">
@@ -474,6 +510,60 @@ corrección, olvido, fuera de corpus).
   <tr><td>Respuestas RAG con fuentes cuando corresponde</td><td>100%</td><td>100%</td><td><span class="badge badge-ok">cumple</span></td></tr>
 </table>
 
+<h2>Metodología (cómo se calcularon estas cifras)</h2>
+<p>
+Los 13 casos se ejecutaron <strong>una vez cada uno</strong> contra el sistema real (Firestore +
+BigQuery + Vertex AI/Gemini reales, el mismo camino de código que <code>/chat</code> en
+producción) vía <code>evaluation/llm_judge.py</code>, con un usuario sintético
+(<code>eval-user-fase10</code>) para no ensuciar los perfiles reales. No son repeticiones
+promediadas por caso — cada promedio de la tabla anterior es sobre las 13 corridas (o sobre el
+subconjunto donde la métrica aplica: personalization solo promedia los 6 casos de
+recomendación/memoria). El juez automático (Gemini, salida estructurada) evalúa el turno final
+de cada caso; la evaluación manual es una revisión humana independiente de los transcripts
+completos, no solo del score del juez — ambas están documentadas en detalle en
+<code>evaluation/manual_evaluation.md</code>.
+</p>
+
+<h2>Evidencia de pruebas (autosuficiente, sin abrir archivos externos)</h2>
+<table>
+<tr><th>Prueba</th><th>Entrada</th><th>Comportamiento esperado</th><th>Resultado observado</th></tr>
+<tr>
+  <td><strong>RAG con fuentes</strong></td>
+  <td>Tras declarar preferencia por katanas: "Given what you know about me, what weapon
+      should I use?"</td>
+  <td>Recupera evidencia real vía <code>search_elden_ring_knowledge</code> y cita fuentes
+      verificables, no genéricas</td>
+  <td>Recomienda 3 katanas con razones ligadas al perfil.<br>
+      <code>**Sources**</code><br>- weapon · Nagakiba<br>- weapon · Meteoric Ore Blade<br>
+      - weapon · Uchigatana</td>
+</tr>
+<tr>
+  <td><strong>Memoria entre sesiones</strong></td>
+  <td>Login 1: "I main a bleed build with high arcane scaling." → logout (sesión ADK se
+      reinicia) → Login 2: "What do you remember about my preferences?"</td>
+  <td>Recupera desde Firestore (<code>player_profiles</code>), no desde contexto conversacional
+      — el contexto de sesión no sobrevive al logout</td>
+  <td>"I remember that your preferred build type is 'bleed' and your primary stat is
+      'arcane'." — verificado directamente contra el documento en Firestore.</td>
+</tr>
+<tr>
+  <td><strong>Aislamiento entre usuarios</strong></td>
+  <td>Usuario sintético A declara preferencias; usuario sintético B
+      (<code>eval-isolation-b</code>) pregunta qué recuerda de él</td>
+  <td>B nunca ve las preferencias guardadas por A — 0 fugas de memoria</td>
+  <td>Confirmado: el perfil de B es independiente y no contiene datos de A. Ejecutado en vivo
+      en esta sesión de evaluación (ver <code>manual_evaluation.md</code>, punto 5).</td>
+</tr>
+</table>
+<p class="small">
+Transcripts completos de las dos primeras pruebas: casos <code>recommendation-memory</code> y
+<code>persistent-memory-preference</code> en <code>evaluation/transcripts.json</code>. No se
+incluyen capturas de navegador del servicio desplegado porque el entorno de esta sesión no
+tiene chromium/playwright instalado (ver Limitaciones) — la evidencia de arriba corre contra la
+misma infraestructura real (Firestore/BigQuery/Vertex AI) y el mismo código que atiende
+<code>/chat</code> en Cloud Run, solo que invocada directamente en vez de vía navegador.
+</p>
+
 <div class="callout honest">
 <strong>Hallazgo honesto, no maquillado:</strong> el juez automático marcó 1 de 13 casos
 (<code>lore-01</code>, sobre Malenia) como alucinación. La revisión manual encontró que es un
@@ -495,7 +585,6 @@ explícita de los 6 criterios mínimos del PRD §36).
 </p>
 
 <!-- ============ 10. DECISIONES Y TRADE-OFFS ============ -->
-<div class="page-break"></div>
 <h1>10. Decisiones y trade-offs</h1>
 
 <h3>Vector Search (BigQuery) vs FAISS</h3>
@@ -516,35 +605,28 @@ acceso "leer/escribir un documento por request" que necesita la memoria conversa
 <h3>Un solo agente vs multiagente</h3>
 <p>Ver sección 5 — sin justificación funcional para orquestación entre agentes en este alcance.</p>
 
-<h3>IAM amplio por velocidad</h3>
+<h3>IAM: de <code>roles/editor</code> a privilegios mínimos</h3>
 <p>
-La service account de Cloud Run usa <code>roles/editor</code> (con dos roles extra
-otorgados a mano, ver sección 8) en vez de una service account dedicada de mínimo privilegio.
-Deuda técnica aceptada explícitamente para priorizar velocidad de entrega sobre superficie de
-IAM mínima (TODO-05 post-MVP).
+El MVP priorizó velocidad de entrega usando la service account por defecto de Cloud Run
+(<code>roles/editor</code>) en vez de una identidad dedicada de mínimo privilegio — deuda
+técnica aceptada explícitamente (TODO-05). <strong>Resuelta el 2026-09-06:</strong> Cloud Run
+corre ahora con <code>elden-ring-agent-sa</code>, con solo los 5 roles de proyecto que el
+servicio necesita en tiempo de ejecución (ver sección 8 y tabla de sección 12).
 </p>
 
 <h3>Apps Script vs frontend dedicado</h3>
 <p>
-Esta es la decisión más significativa que se desvió del plan original. El PRD proponía Apps
-Script embebido en Google Sites. Se implementó completo (Login/Chat, JWT, CORS), se publicó
-como Web App (<code>access: ANYONE_ANONYMOUS</code>, <code>executeAs: USER_DEPLOYING</code> —
-la única combinación válida para acceso público sin login de Google), y funcionaba
-perfectamente desde pruebas de servidor (<code>curl</code>, y las ejecuciones de
-<code>doGet()</code> en el editor de Apps Script siempre se registraron como "Completada" sin
-error). Sin embargo, el navegador real de la usuaria <strong>nunca</strong> pudo renderizar el
-Web App — mostraba un error genérico de Google Drive ("No se pudo abrir el archivo en este
-momento"), reproducible en múltiples cuentas, redes, dispositivos y navegadores (incluyendo
-incógnito), sin que se encontrara una causa raíz identificable del lado de Google.
-</p>
-<p>
-Ante un problema de infraestructura de terceros sin causa raíz diagnosticable y sin más
-palancas de control de nuestro lado, se decidió reemplazar Apps Script/Sites por un frontend
-estático (HTML/CSS/JS sin build) servido directamente por el mismo FastAPI vía
-<code>StaticFiles</code>, mismo origen que la API — patrón tomado de un proyecto hermano del
-mismo curso (<code>ah-grupo-fundador</code>). Esto eliminó por completo la superficie de falla
-(sin CORS, sin Google Sites, sin dependencia de la capa de serving de Apps Script) y se validó
-end-to-end en el navegador real de la usuaria tras el redeploy.
+La decisión más significativa que se desvió del plan original. El PRD proponía Apps Script
+embebido en Google Sites; se implementó completo (Login/Chat, JWT, CORS) y se publicó como Web
+App, con <code>doGet()</code> registrando "Completada" sin error el 100% de las veces desde el
+editor y desde <code>curl</code>. Sin embargo el navegador real de la usuaria
+<strong>nunca</strong> pudo renderizarlo — error genérico de Google Drive, reproducible en
+múltiples cuentas, redes, dispositivos y navegadores, sin causa raíz diagnosticable del lado de
+Google. Ante un problema de infraestructura de terceros sin más palancas de control de nuestro
+lado, se reemplazó por un frontend estático (HTML/CSS/JS sin build) servido por el mismo
+FastAPI vía <code>StaticFiles</code> — mismo origen, sin CORS, sin Google Sites — patrón tomado
+de un proyecto hermano del curso (<code>ah-grupo-fundador</code>). Validado end-to-end en el
+navegador real de la usuaria tras el redeploy.
 </p>
 
 <!-- ============ 11. LIMITACIONES ============ -->
@@ -557,7 +639,11 @@ end-to-end en el navegador real de la usuaria tras el redeploy.
     proyecto Medallion paralelo.</li>
   <li><strong>Grounding restringido a la KB:</strong> el agente rechaza cualquier pregunta
     fuera del corpus recuperado, incluso si la respuesta "obvia" está en el conocimiento
-    general del LLM — es una limitación deliberada (P-01), no un bug.</li>
+    general del LLM — es una limitación deliberada (P-01), no un bug. Es una mitigación de
+    prompt, no una validación técnica de backend (ver sección 4).</li>
+  <li><strong>Persistencia de memoria probabilística:</strong> depende de que el modelo decida
+    llamar <code>update_player_memory</code>; no hay una validación estructurada de backend que
+    compruebe la persistencia después del hecho (ver sección 6).</li>
   <li><strong>Autenticación simplificada:</strong> sin email, verificación, recuperación de
     contraseña ni MFA. Registro público cerrado — alta de usuarios solo local
     (<code>scripts/create_user.py</code>).</li>
@@ -565,8 +651,6 @@ end-to-end en el navegador real de la usuaria tras el redeploy.
     evaluación se observó una respuesta en inglés con un carácter chino suelto. No se
     reprodujo en los 13 casos formales, pero el comportamiento multilingüe está mitigado, no
     garantizado al 100%.</li>
-  <li><strong>Deuda técnica de IAM:</strong> service account con <code>roles/editor</code> en
-    vez de una identidad de mínimo privilegio dedicada (ver sección 10).</li>
   <li><strong>Sin índice vectorial ANN:</strong> aceptable para ~1,208 documentos; no
     escalaría sin cambios a corpus de órdenes de magnitud mayores.</li>
   <li><strong>CORS ya no aplica</strong> (el frontend se sirve del mismo origen), pero
@@ -578,10 +662,12 @@ end-to-end en el navegador real de la usuaria tras el redeploy.
 <table>
   <tr><th>TODO</th><th>Descripción</th></tr>
   <tr><td>TODO-01</td><td><span class="badge badge-ok">implementado</span> Selector de historial navegable — ver sección 6, "Actualización post-MVP".</td></tr>
-  <tr><td>TODO-02</td><td>Feedback explícito del usuario (👍/👎) sobre las respuestas.</td></tr>
+  <tr><td>TODO-02</td><td>Feedback explícito del usuario (me sirvió / no me sirvió) sobre las respuestas.</td></tr>
   <tr><td>TODO-03</td><td>Endpoints administrativos (gestión de usuarios, memoria, etc.).</td></tr>
   <tr><td>TODO-04</td><td>Observabilidad avanzada (métricas, tracing, alertas).</td></tr>
-  <tr><td>TODO-05</td><td>Hardening de IAM: service account dedicada de mínimo privilegio.</td></tr>
+  <tr><td>TODO-05</td><td><span class="badge badge-ok">implementado</span> Hardening de IAM —
+      SA dedicada de privilegios mínimos (<code>elden-ring-agent-sa</code>), completado
+      2026-09-06. Ver sección 8.</td></tr>
   <tr><td>TODO-06</td><td>Restringir CORS a orígenes específicos (ya no aplica tras el cambio de frontend, pero documentado por si se reintroduce un cliente externo).</td></tr>
   <tr><td>TODO-07</td><td>Índice vectorial ANN si el corpus crece órdenes de magnitud.</td></tr>
   <tr><td>TODO-08</td><td>Frontend avanzado (más pantallas, mejor UX, posiblemente streaming NDJSON en <code>/chat</code>).</td></tr>
@@ -593,8 +679,15 @@ end-to-end en el navegador real de la usuaria tras el redeploy.
   <code>https://elden-ring-agent-704637212685.us-central1.run.app</code>
 </p>
 <p class="small" style="text-align:center;">
-  Frontend (Login/Chat) y API viven en la misma URL. Roster de acceso: 3 cuentas
-  pre-aprobadas (credenciales fuera de este documento).
+  Frontend (Login/Chat) y API viven en la misma URL.
+</p>
+
+<h2>Cuentas de evaluación</h2>
+<p>
+Registro público cerrado (sección 7) — roster fijo de 3 cuentas. Las credenciales de
+evaluación se entregan al docente por un canal privado, separado de este PDF, y se verificó de
+antemano que la cuenta permite iniciar sesión y usar el flujo completo (chat, RAG, memoria)
+antes de la entrega.
 </p>
 
 </body>

@@ -223,11 +223,45 @@ opcional/de pulido — no hay pendientes bloqueantes.
   ```
 - Verificado visualmente (no solo generado a ciegas): se instaló `pymupdf` temporalmente para
   renderizar páginas de muestra a PNG y confirmar que tablas/diagrama/callouts se ven bien —
-  `pypdf`/`pymupdf` NO quedaron en `requirements-dev.txt` (fueron solo para QA de esta sesión,
-  no hacen falta para regenerar el PDF).
+  `pypdf`/`pymupdf` NO quedaron en `requirements-dev.txt` (fueron solo para QA, no hacen falta
+  para regenerar el PDF).
 - Contiene los hallazgos honestos de Fase 10 (falso positivo del juez en `lore-01`,
   duplicado de Malenia en el corpus) y la narrativa completa de la desviación Apps
   Script→frontend estático — no es un documento "maquillado", refleja lo que realmente pasó.
+
+### Actualización 2026-09-06 — respuesta al dictamen (`docs/dictamen_mejoras_entregable.md`)
+
+El usuario pidió un dictamen externo de mejoras sobre el PDF y luego que se aplicara. Cambios:
+
+- **Grounding**: sección 4 ahora deja explícito que es una mitigación de prompt (system
+  instruction), no una validación técnica de backend — `backend/tools/rag.py`/`/chat` no
+  verifican después del hecho que la respuesta cite lo recuperado. Se agregó una tabla con un
+  ejemplo real fuera de corpus (rechazo) y uno dentro de corpus (con fuentes), tomados de
+  `evaluation/transcripts.json` (casos `out-of-kb-real-world`, `recommendation-memory`).
+- **Evidencia autosuficiente**: sección 9 ahora incluye metodología explícita (13 casos, una
+  corrida cada uno, mismo código que `/chat` en producción) y una tabla de 3 pruebas completas
+  (RAG con fuentes, memoria entre sesiones, aislamiento entre usuarios) con entrada/esperado/
+  observado, legible sin abrir archivos externos.
+- **Credenciales de evaluación**: se probó brevemente ponerlas en texto plano en el PDF a
+  petición del usuario (pese a que esto contradecía la recomendación del propio dictamen), pero
+  el usuario se retractó de inmediato y pidió quitarlas y que no quedara rastro en commits.
+  Sección 13 quedó con la versión alineada al dictamen: nota de que las credenciales se
+  entregan al docente por un canal privado separado del PDF, sin contraseñas ni tabla de
+  cuentas. El commit que había incluido las contraseñas nunca se pusheó (verificado contra
+  `@{u}`) y se reescribió con `git commit --amend` antes de push para que no quedaran en el
+  historial local.
+- **IAM**: como TODO-05 ya se había completado el mismo día (SA dedicada
+  `elden-ring-agent-sa`, ver sección arriba), se actualizaron secciones 8/10/11/12 para
+  reflejarlo — ya no aparece como deuda técnica abierta ni como "roles/editor".
+- **Fecha de portada**: "Septiembre 2026" → "5 de septiembre de 2026" (dato dado por el
+  usuario).
+- **Paginación**: se quitaron 4 `page-break-before` forzados que dejaban páginas casi vacías
+  (el problema que el dictamen marcó en la página 5) y se agregó `page-break-inside: avoid` a
+  `table`/`.callout` para que no se corten a la mitad (9 páginas, mejor distribuidas). También
+  se corrigieron dos emoji (👍/👎 en TODO-02) que no renderizaban con las fuentes DejaVu de
+  weasyprint — texto plano en su lugar.
+- Narrativa de incidentes (memoria, Apps Script) condensada ~40% para dar espacio a la
+  evidencia nueva, sin perder los hechos honestos ya documentados.
 
 ## Mejoras post-MVP (2026-09-06) — historial de chats, indicador de progreso, fix de memoria
 
