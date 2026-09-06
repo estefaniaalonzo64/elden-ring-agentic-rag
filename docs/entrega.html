@@ -324,8 +324,9 @@ sobre-ingeniería para este alcance.
           explícitamente.</td></tr>
   <tr><td><strong>Transcript de conversación</strong></td><td>Firestore,
       <code>chat_sessions/{session_id}/messages</code></td>
-      <td>Logins — pero no se re-inyecta automáticamente como contexto activo (MVP: sin
-          selector de historial, TODO-01).</td></tr>
+      <td>Logins — navegable desde un panel dedicado (TODO-01, ver "Actualización post-MVP"
+          abajo), pero no se re-inyecta automáticamente como contexto activo del agente al
+          reabrir una conversación.</td></tr>
 </table>
 
 <p>
@@ -343,6 +344,49 @@ claves con punto (<code>"stats.level"</code>) como rutas anidadas dentro de
 <code>set(..., merge=True)</code> — las guarda como nombres de campo literales. El merge
 parcial correcto usa <code>update()</code> con esas mismas claves (que sí resuelve la ruta),
 asegurando primero que el documento exista.
+</div>
+
+<h2>Actualización post-MVP: historial navegable (TODO-01)</h2>
+<p>
+Tras cerrar el MVP se implementó el selector de historial que quedaba explícitamente fuera de
+alcance (TODO-01, sección 12). Tres endpoints nuevos, todos filtrados por el <code>user_id</code>
+del JWT igual que <code>/chat</code>: <code>GET /sessions</code> (lista las conversaciones
+propias, más recientes primero, con preview del primer mensaje), <code>GET
+/sessions/{id}/messages</code> (transcript completo de una conversación propia) y <code>POST
+/sessions</code> (inicia una conversación nueva sin cerrar sesión). En el frontend, un panel
+"Mis conversaciones" en la pantalla de Chat permite reabrir y continuar cualquier conversación
+anterior. Junto con esto se agregó un indicador de progreso ("Pensando..." / "Buscando
+información...") mientras <code>POST /chat</code> está en curso, para que la UI nunca parezca
+congelada durante la vuelta RAG + LLM.
+</p>
+
+<div class="callout honest">
+<strong>Bug real encontrado y corregido — la memoria no se guardaba de forma confiable:</strong>
+el usuario declaró una preferencia de playstyle en una conversación real
+("agresivo, ligera, daño, no me interesa mucho usar hechizos") y, en una sesión posterior, el
+agente respondió que no recordaba nada de él. Verificado directamente contra Firestore: la
+colección <code>player_profiles</code> estaba completamente vacía pese a esa declaración
+explícita. Causa raíz: el <em>system instruction</em> le decía al modelo que detectara y
+persistiera preferencias, pero en la práctica el modelo usaba la preferencia como contexto de
+esa única respuesta y no siempre llamaba <code>update_player_memory</code> — sobre todo cuando
+la preferencia llegaba como respuesta a una pregunta del propio agente dentro de un flujo de
+recomendación. Se corrigió con una regla explícita y no ambigua en el prompt, atada al paso
+concreto del flujo de recomendación donde esto fallaba. Verificado en vivo reproduciendo la
+conversación original: ahora sí se crea el documento en <code>player_profiles</code> y una
+sesión nueva (login distinto) recupera la preferencia correctamente. Es una corrección de
+comportamiento de un LLM vía prompt, no una garantía dura a nivel de código.
+</div>
+
+<div class="callout honest">
+<strong>Bug real encontrado y corregido — conversaciones vacías:</strong> la primera versión
+del historial navegable creaba el documento <code>chat_sessions</code> en Firestore de forma
+inmediata en cada login y en cada click de "Nueva conversación", incluso si el usuario nunca
+llegaba a escribir nada. El usuario lo notó tras minutos de uso real: el panel se llenaba de
+entradas sin mensaje. Se corrigió con creación perezosa — ambos puntos de entrada ahora solo
+generan un identificador de conversación; el documento se crea recién en <code>POST /chat</code>,
+la primera vez que ese identificador no existe, en el mismo turno del primer mensaje real. Se
+hizo además una limpieza puntual, una sola vez, de los <code>chat_sessions</code> vacíos que ya
+existían en Firestore real (41 de 53 documentos).
 </div>
 
 <!-- ============ 7. AUTENTICACIÓN ============ -->
@@ -398,6 +442,16 @@ Run) necesitó dos roles adicionales otorgados explícitamente —
 <code>roles/storage.objectViewer</code> (para que Cloud Build lea el código fuente subido) y
 <code>roles/secretmanager.secretAccessor</code> sobre el secreto específico — ninguno de los
 dos viene incluido en <code>roles/editor</code> pese a su amplitud.
+</p>
+
+<p class="small">
+Redespliegues post-MVP (historial navegable, indicador de progreso, fixes de memoria y de
+sesiones vacías — ver sección 6): <code>gcloud run deploy ... --source .</code>, sin repetir
+<code>--set-env-vars</code>/<code>--set-secrets</code> — Cloud Run conserva la configuración de
+la revisión anterior cuando no se la pisa explícitamente. Revisiones activas resultantes:
+<code>elden-ring-agent-00005-xnq</code> y, tras el fix de sesiones vacías,
+<code>elden-ring-agent-00006-2wg</code> (actual). Ambas verificadas en vivo contra el servicio
+desplegado, no solo localmente.
 </p>
 
 <!-- ============ 9. EVALUACIÓN ============ -->
@@ -523,7 +577,7 @@ end-to-end en el navegador real de la usuaria tras el redeploy.
 <h1>12. Mejoras futuras</h1>
 <table>
   <tr><th>TODO</th><th>Descripción</th></tr>
-  <tr><td>TODO-01</td><td>Selector de historial navegable (el transcript ya se persiste, falta exponerlo en la UI).</td></tr>
+  <tr><td>TODO-01</td><td><span class="badge badge-ok">implementado</span> Selector de historial navegable — ver sección 6, "Actualización post-MVP".</td></tr>
   <tr><td>TODO-02</td><td>Feedback explícito del usuario (👍/👎) sobre las respuestas.</td></tr>
   <tr><td>TODO-03</td><td>Endpoints administrativos (gestión de usuarios, memoria, etc.).</td></tr>
   <tr><td>TODO-04</td><td>Observabilidad avanzada (métricas, tracing, alertas).</td></tr>
