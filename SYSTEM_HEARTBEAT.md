@@ -40,7 +40,7 @@ Script/Sites salvo que el usuario lo pida explícitamente nuevamente.
 | 7 | Frontend — **estático, servido por FastAPI** (no Apps Script, ver desviación arriba) | ✅ hecho, validado end-to-end por el usuario en su navegador real |
 | 8 | Cloud Run (deploy real) | ✅ desplegado y validado (`/health`, `/login`, `/chat`, frontend, todo real) |
 | 9 | ~~Google Sites~~ — **N/A**, absorbida por Fase 7/8 (la URL de Cloud Run es el entregable) | ✅ cumplida por diseño, nada que hacer aquí |
-| 10 | Evaluación (manual + LLM-as-judge) | ⏳ pendiente — siguiente paso natural |
+| 10 | Evaluación (manual + LLM-as-judge) | ✅ hecho — 13 casos, ambos niveles, todos los criterios mínimos del PRD §36 cumplidos |
 
 ## Recursos GCP ya provisionados (proyecto `ah-estefania-alozno`)
 
@@ -141,10 +141,35 @@ acceso anónimo y no quiere que cualquiera cree una cuenta y gaste tokens de Gem
 
 ## Bloqueos activos
 
-Ninguno. Backend + frontend desplegados juntos en Cloud Run, validado end-to-end por el
-usuario en su propio navegador (login + chat + logout). Fases 1–9 completas (9 vía la
-desviación de arquitectura de arriba). Solo falta Fase 10 (Evaluación) — contenido, no
-infraestructura.
+Ninguno. **Fases 1–10 completas.** El PRD queda cumplido salvo la desviación de arquitectura
+documentada arriba (Fase 7/9, decisión explícita del usuario). Lo que sigue, si algo, es
+opcional/de pulido — no hay pendientes bloqueantes.
+
+## Evaluación (Fase 10)
+
+- `evaluation/cases.yaml`: 13 casos, cubre las 8 categorías mínimas del PRD §34.1.
+- `evaluation/llm_judge.py`: corre los 13 casos contra el sistema real (mismo camino que
+  `/chat`, usuario sintético `eval-user-fase10` para no ensuciar los perfiles reales) y
+  juzga el turno final de cada caso con Gemini (salida estructurada, PRD §35). Reusable:
+  `PYTHONPATH=. .venv/bin/python evaluation/llm_judge.py`.
+- `evaluation/transcripts.json` / `llm_judge_results.json`: evidencia cruda por caso
+  (conversaciones completas + veredicto del juez), generada por la corrida real de esta
+  sesión — no fabricada.
+- `evaluation/manual_evaluation.md`: revisión humana de esos mismos transcripts, con tabla
+  de las 8 métricas del PRD §34.2 por caso, y verificación explícita de los 6 criterios
+  mínimos del PRD §36 — **todos cumplidos**.
+- **Hallazgo real, no maquillado**: el juez automático marcó 1/13 casos (`lore-01`, sobre
+  Malenia) como `hallucination_detected: true`. La revisión manual encontró que es un falso
+  positivo — el corpus (`semantic_documents` en BigQuery) contiene dos entidades `boss`
+  duplicadas para Malenia con listas de "Drops" inconsistentes entre sí, y el agente reportó
+  fielmente ambos registros marcando la discrepancia, sin inventar nada. Es un defecto de
+  calidad de datos **upstream** (capa Gold del proyecto Medallion, read-only para nosotros —
+  P-02), no del agente ni del RAG. Documentado en detalle en `manual_evaluation.md` punto 1.
+- El episodio de mezcla de idioma visto en Fase 5 (un carácter chino suelto en una respuesta
+  en inglés) no se reprodujo en los 13 casos de esta batería, pero sigue documentado como
+  riesgo conocido (no 100% resuelto, solo mitigado) — ver gotcha #2 abajo.
+
+## App real en Cloud Run (Fases 7 + 8, frontend + backend juntos)
 
 ## App real en Cloud Run (Fases 7 + 8, frontend + backend juntos)
 
@@ -180,15 +205,17 @@ infraestructura.
 
 ## Próximo paso sugerido
 
-Fase 10 — Evaluación (skill `evaluation`): generar `evaluation/cases.yaml` (10-20 prompts,
-categorías mínimas del PRD §34), `manual_evaluation.md`, y `llm_judge.py`. Aprovechar para
-revisar sistemáticamente el gotcha #2 (mezcla de idioma ocasional) con varios casos en inglés
-y español.
+Ninguno bloqueante — el MVP (PRD §44, con la desviación de Fase 7/9 documentada) está
+completo. Si se retoma el proyecto, lo más valioso sería: (a) preparar el PDF de entrega
+(PRD §45.9) con las capturas/evidencia ya generada, (b) si se quiere pulir más, investigar
+por qué a veces se mezcla idioma (gotcha #2) con una batería más grande de casos en inglés.
 
 ---
 *Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — se abandonó Apps
 Script/Google Sites (Fase 7/9 del PRD) por un problema de rendering nunca resuelto del lado
 de Google, y se reemplazó por un frontend estático servido directo desde el mismo FastAPI
 (patrón tomado de `ah-grupo-fundador`), desplegado y validado end-to-end en Cloud Run por el
-usuario en su navegador real. Fases 1-9 completas. Queda solo Fase 10 (Evaluación). Actualiza
+usuario en su navegador real. Fase 10 (Evaluación) completa: 13 casos, ambos niveles
+requeridos, todos los criterios mínimos del PRD §36 cumplidos, con un hallazgo real de
+calidad de datos upstream documentado honestamente. **Fases 1-10 completas.** Actualiza
 esta sección al cerrar tu turno: fecha, qué cambiaste, qué falta.*

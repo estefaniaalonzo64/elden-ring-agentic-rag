@@ -1,0 +1,97 @@
+# Fase 10 — Casos de evaluación (PRD §34.1). Categorías mínimas cubiertas, 13 casos.
+#
+# Cada caso es una lista de `turns` en la MISMA sesión ADK, salvo que un turno traiga
+# `new_session: true` (simula logout+login real: nueva chat_session, mismo user_id,
+# memoria persistente en Firestore intacta — PRD §15.2/§15.3).
+#
+# `notes` es guía para quien haga la evaluación manual (qué buscar), no una respuesta
+# esperada literal — el corpus es texto, no hay un único string "correcto".
+
+cases:
+  - id: lore-01
+    category: lore
+    notes: "Entidad real del corpus (boss). Debe traer hechos respaldados por fuentes, sin inventar lore no documentado."
+    turns:
+      - message: "What do you know about Malenia, Blade of Miquella?"
+
+  - id: lore-02
+    category: lore
+    notes: "Lore en español sobre un NPC conocido. Debe responder en español con fuentes."
+    turns:
+      - message: "¿Quién es Ranni la Bruja?"
+
+  - id: retrieval-multilingual-es
+    category: retrieval_multilingual
+    notes: "Consulta técnica en español sobre un arma. El corpus está en inglés — la recuperación semántica debe funcionar igual, y la respuesta debe ser en español."
+    turns:
+      - message: "¿Qué estadísticas de ataque tiene la katana Uchigatana?"
+
+  - id: retrieval-multilingual-en
+    category: retrieval_multilingual
+    notes: "Consulta en inglés sobre una incantation/staff. Debe responder en inglés."
+    turns:
+      - message: "Tell me about the Meteorite Staff."
+
+  - id: recommendation-dex
+    category: recommendation
+    notes: "Recomendador Top 3, formato ### 1./2./3. con Why it fits/What it brings/Lore y fuentes al final."
+    turns:
+      - message: "I like katanas and I'm going for a dexterity build. What weapon should I use?"
+
+  - id: recommendation-int
+    category: recommendation
+    notes: "Recomendación para un build distinto (magia/inteligencia), en español."
+    turns:
+      - message: "Recomiéndame equipo para un build de inteligencia enfocado en magia."
+
+  - id: recommendation-memory
+    category: recommendation_memory
+    notes: "3 turnos: el agente debe detectar y guardar preferencias en los primeros dos, y usarlas (personalización real) al recomendar en el tercero."
+    turns:
+      - message: "I really enjoy an aggressive melee playstyle."
+      - message: "My favorite weapon type is katanas."
+      - message: "Given what you know about me, what weapon should I use?"
+
+  - id: persistent-memory-preference
+    category: persistent_memory
+    notes: "La preferencia debe sobrevivir a una sesión ADK nueva (logout+login simulado) porque vive en Firestore, no en el contexto conversacional."
+    turns:
+      - message: "I main a bleed build with high arcane scaling."
+      - message: "What do you remember about my preferences?"
+        new_session: true
+
+  - id: persistent-memory-stats
+    category: persistent_memory
+    notes: "Igual que el anterior pero con stats numéricos en vez de preferencias cualitativas."
+    turns:
+      - message: "My character is level 90, with 40 vigor and 50 dexterity."
+      - message: "What are my current stats?"
+        new_session: true
+
+  - id: memory-correction
+    category: memory_correction
+    notes: "El agente debe reemplazar el valor viejo, no acumularlo (no debe decir que juega ambos builds a la vez)."
+    turns:
+      - message: "I play a strength-focused build."
+      - message: "Actually I don't play strength anymore, I switched to a full intelligence caster."
+      - message: "What build am I currently playing?"
+
+  - id: memory-forget
+    category: memory_forget
+    notes: "Tras el olvido explícito, el agente no debe seguir afirmando esa preferencia."
+    turns:
+      - message: "I really like using katanas."
+      - message: "Please forget that I like katanas."
+      - message: "What weapon types do I prefer?"
+
+  - id: out-of-kb-real-world
+    category: out_of_kb
+    notes: "Pregunta real pero fuera del corpus. Debe rechazar responder con la frase de insuficiencia, no usar conocimiento general."
+    turns:
+      - message: "What is the capital of France?"
+
+  - id: out-of-kb-fictional
+    category: out_of_kb
+    notes: "Pregunta sobre lore de Elden Ring inventado/no documentado. Debe rechazar, no inventar un final falso."
+    turns:
+      - message: "Tell me about the secret ending where the Tarnished becomes a god of dragons."

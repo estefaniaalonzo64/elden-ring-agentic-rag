@@ -1,0 +1,528 @@
+[
+  {
+    "id": "lore-01",
+    "category": "lore",
+    "notes": "Entidad real del corpus (boss). Debe traer hechos respaldados por fuentes, sin inventar lore no documentado.",
+    "turns": [
+      {
+        "message": "What do you know about Malenia, Blade of Miquella?",
+        "answer": "Malenia, Blade of Miquella, is a formidable boss found in Elphael, Brace of the Haligtree. She is known for her declaration: \"I am Malenia. Blade of Miquella. And I have never known defeat.\" She is also referred to as the Goddess of Rot and the last scion of Miquella.\n\nWhen defeated, she drops Malenia's Great Rune, Remembrance of the Rot Goddess, and 480,000 Runes. Another record indicates she drops Remembrance of the Rot Goddess and Millicent's Prosthesis.\n\nSeveral items are associated with Malenia:\n\n*   **Hand Of Malenia**: This is a katana built into her prosthetic arm, resistant to rot through consecration. It symbolizes her victories, with some claiming to have seen \"wings of fierce determination that have never known defeat\" when it was raised aloft. It requires 16 Strength and 48 Dexterity.\n*   **Malenia's Armor, Gauntlet, and Greaves**: These are pieces of armor made of unalloyed gold, worn by Malenia. The lore states that Malenia awaited Miquella at the foot of the husk, believing her brother would keep his promise and recognizing him as \"the most fearsome Empyrean of all\" due to his wisdom and allure.\n*   **Halo Scythe**: This is the war scythe of the Cleanrot Knights who fought alongside Malenia. It was the weapon of commanders in her army and its half-halo blade deals holy damage.\n*   **Cleanrot Knight's Sword**: A piercing sword also used by the Cleanrot Knights, primarily as a backup weapon.\n\n**Sources**\n- boss · Malenia, Blade Of Miquella\n- boss · Malenia, Blade of Miquella\n- weapon · Hand Of Malenia\n- armor · Malenia's Armor\n- armor · Malenia's Gauntlet\n- armor · Malenia's Greaves\n- weapon · Halo Scythe\n- weapon · Cleanrot Knight's Sword",
+        "sources": [
+          {
+            "entity_type": "boss",
+            "entity_id": "17f69a48308l0i1ux3rigvv37tx84f",
+            "name": "Malenia, Blade Of Miquella"
+          },
+          {
+            "entity_type": "boss",
+            "entity_id": "boss_malenia",
+            "name": "Malenia, Blade of Miquella"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69667faal0i1pezui5k6y6r0fin",
+            "name": "Hand Of Malenia"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f69b03743l0i0nuwvwgkt75di5k",
+            "name": "Malenia's Armor"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f69aa91d7l0i0oe1pj6fo1o9vsx",
+            "name": "Malenia's Gauntlet"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f6995b220l0i0pm3i22h6tm82k99",
+            "name": "Malenia's Greaves"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f697b3423l0i1pgz84q3gg342rvu",
+            "name": "Halo Scythe"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f6990b8f9l0i1poeub82lv32r18o",
+            "name": "Cleanrot Knight's Sword"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "lore-02",
+    "category": "lore",
+    "notes": "Lore en español sobre un NPC conocido. Debe responder en español con fuentes.",
+    "turns": [
+      {
+        "message": "¿Quién es Ranni la Bruja?",
+        "answer": "Ranni la Bruja es un PNJ (personaje no jugable) que se encuentra en el Pico de Ranni, en las Tres Hermanas. Ella misma dice: \"Soy la bruja Ranni. Robé la Muerte hace mucho tiempo, y ahora busco el camino oscuro.\"\n\n**Fuentes**\n- npc · Ranni The Witch",
+        "sources": [
+          {
+            "entity_type": "npc",
+            "entity_id": "17f69f5e08al0i2opgccucgwqfl6n6",
+            "name": "Ranni The Witch"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "17f699524dal0i2oqpa3288ofa2qpo",
+            "name": "Latenna"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "npc_blaidd",
+            "name": "Blaidd, Half-Wolf"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "17f69ddf39dl0i2ojm1riku8s6qxfs",
+            "name": "Sorceress Sellen"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "17f6998a6eel0i2omw40wiu6ms1t9nd",
+            "name": "Renna"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "17f699a9d79l0i2olzmep3owqdj2z6",
+            "name": "Melina"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "17f69998867l0i2ommc4k9yu9xtixv",
+            "name": "Bloody Finger Hunter Yura"
+          },
+          {
+            "entity_type": "npc",
+            "entity_id": "npc_melina",
+            "name": "Melina"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "retrieval-multilingual-es",
+    "category": "retrieval_multilingual",
+    "notes": "Consulta técnica en español sobre un arma. El corpus está en inglés — la recuperación semántica debe funcionar igual, y la respuesta debe ser en español.",
+    "turns": [
+      {
+        "message": "¿Qué estadísticas de ataque tiene la katana Uchigatana?",
+        "answer": "La Uchigatana tiene las siguientes estadísticas de ataque:\n\n*   **Físico (Phy):** 115\n*   **Magia (Mag):** 0\n*   **Fuego (Fire):** 0\n*   **Rayo (Lightning):** 0\n*   **Sagrado (Holy):** 0\n*   **Crítico (Crit):** 100\n\n**Fuentes**\n- weapon · Uchigatana",
+        "sources": [
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69cd8a23l0i1peugvwepjdkaqh",
+            "name": "Uchigatana"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "wpn_rivers_of_blood",
+            "name": "Rivers of Blood"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69a01b63l0i1ovq80hzuqcz211pn",
+            "name": "Wakizashi"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69728e6al0i1peyh4scwxfhl357",
+            "name": "Nagakiba"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f6946d08bl0i1pfb4sevs913hvu",
+            "name": "Rivers Of Blood"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69a10accl0i1pfj7uwvc9kzei7d",
+            "name": "Moonveil"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f699693fbl0i1otqw0glcy3u6fp0k",
+            "name": "Dagger"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69d611efl0i1pfqtebu0oq2b2w4",
+            "name": "Serpentbone Blade"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "retrieval-multilingual-en",
+    "category": "retrieval_multilingual",
+    "notes": "Consulta en inglés sobre una incantation/staff. Debe responder en inglés.",
+    "turns": [
+      {
+        "message": "Tell me about the Meteorite Staff.",
+        "answer": "The Meteorite Staff is a glintstone staff embedded with a dark purple glintstone, said to be a fragment of a meteorite. It boasts high sorcery scaling and boosts gravity sorceries. However, it cannot be strengthened.\n\nHere are its statistics:\n*   **Weight:** 4.5\n*   **Attack:** Phy 39, Mag 0, Fire 0, Lightning 0, Holy 0, Crit 0, Sorc 60\n*   **Defense:** Phy 28, Mag 17, Fire 17, Lightning 17, Holy 17, Boost 17\n*   **Required Attributes:** Strength 6, Intelligence 18\n*   **Scaling:** Strength D, Intelligence S\n\n**Source**\n- weapon · Meteorite Staff",
+        "sources": [
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f6995e6eel0i1p0ujryl4uvjkiji",
+            "name": "Meteorite Staff"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69513a8al0i1pf3ozolljjevfk",
+            "name": "Meteoric Ore Blade"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69573764l0i1ondtdlwail0224s",
+            "name": "Watchdog's Staff"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f699946f4l0i1oz2nopkhsi7qz5p",
+            "name": "Crystal Staff"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69dc1749l0i1ooc0npawnyrf3d",
+            "name": "Staff Of The Avatar"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69dea799l0i1p0jj1dc7gc9ooad",
+            "name": "Academy Glintstone Staff"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69930219l0i1oytgbre6o33dti",
+            "name": "Glintstone Staff"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69b2786dl0i1ozt246l3i5ng1n3",
+            "name": "Astrologer's Staff"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "recommendation-dex",
+    "category": "recommendation",
+    "notes": "Recomendador Top 3, formato ### 1./2./3. con Why it fits/What it brings/Lore y fuentes al final.",
+    "turns": [
+      {
+        "message": "I like katanas and I'm going for a dexterity build. What weapon should I use?",
+        "answer": "### 1. Nagakiba\n\n**Why it fits:** This katana has a good Dexterity scaling of C, making it a strong choice for a dexterity-focused build. Its long blade and thrusting attacks can provide good reach in combat.\n**What it brings:** Phy 115, Str D scaling, Dex C scaling.\n**Lore:** Signature weapon of Yura, hunter of Bloody Fingers.\n\n### 2. Dragonscale Blade\n\n**Why it fits:** Another excellent katana for dexterity builds, featuring a C scaling in Dexterity. It has a unique origin tied to ancient dragons.\n**What it brings:** Phy 110, Str D scaling, Dex C scaling, with a good Lightning Defense of 50.\n**Lore:** A weapon made by sharpening a Gravel Stone scale, thought to be the source of ancient dragon immortality. The Dragonkin Soldiers, however, never attained immortality.\n\n### 3. Rivers of Blood\n\n**Why it fits:** This katana is suitable for dexterity builds with a D scaling in Dexterity, and also scales with Arcane (D), making it a good option for builds that incorporate both stats. It's known for its blood loss effect.\n**What it brings:** Phy 65, Blood loss 65, Dex D scaling, Arc D scaling, reduces stamina consumption of the weapon art.\n**Lore:** Katana forged by Bloody Finger Okina.\n\n**Sources**\n- weapon · Nagakiba\n- weapon · Dragonscale Blade\n- weapon · Rivers of Blood",
+        "sources": [
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f699730a1l0i1oxo8gfllal3rur",
+            "name": "Katar"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "wpn_rivers_of_blood",
+            "name": "Rivers of Blood"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69cd8a23l0i1peugvwepjdkaqh",
+            "name": "Uchigatana"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69728e6al0i1peyh4scwxfhl357",
+            "name": "Nagakiba"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69c558e4l0i1pfn93tt9wcpo0di",
+            "name": "Dragonscale Blade"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {
+        "build_type": "dexterity",
+        "weapon_type": "katanas"
+      },
+      "stats": {}
+    }
+  },
+  {
+    "id": "recommendation-int",
+    "category": "recommendation",
+    "notes": "Recomendación para un build distinto (magia/inteligencia), en español.",
+    "turns": [
+      {
+        "message": "Recomiéndame equipo para un build de inteligencia enfocado en magia.",
+        "answer": "Aquí tienes algunas recomendaciones de equipo para un build de inteligencia enfocado en magia:\n\n### 1. Olivinus Glintstone Crown\n\n**Why it fits:** Esta corona está diseñada para eruditos y aumenta tu inteligencia, lo cual es fundamental para maximizar el daño de tus hechizos mágicos.\n**What it brings:** Aumento de inteligencia, a cambio de una pequeña reducción en tu HP.\n**Lore:** El linaje del Conspectus Olivinus comenzó con el hechicero Lusat, y sus seguidores continúan su estudio de los meteoritos.\n\n### 2. Twinsage Glintstone Crown\n\n**Why it fits:** Esta corona proporciona un aumento aún mayor de inteligencia que la Olivinus Glintstone Crown, lo que se traduce en un poder mágico considerablemente mayor.\n**What it brings:** Un gran aumento de inteligencia, a cambio de una reducción tanto en tu HP como en tu aguante.\n**Lore:** Los eruditos del Conspectus Twinsage eran la élite de la academia, a quienes se les permitía estudiar y sobresalir en hechicería de todo tipo.\n\n**Sources**\n- armor · Olivinus Glintstone Crown\n- armor · Twinsage Glintstone Crown",
+        "sources": [
+          {
+            "entity_type": "armor",
+            "entity_id": "17f695563b4l0i0p6mlnshe9rhzh9",
+            "name": "Olivinus Glintstone Crown"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f693df84bl0i0pddogyqqykhoixl",
+            "name": "Twinsage Glintstone Crown"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f69c1dd2el0i0ozlazmh75f99cng",
+            "name": "Iji's Mirrorhelm"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "recommendation-memory",
+    "category": "recommendation_memory",
+    "notes": "3 turnos: el agente debe detectar y guardar preferencias en los primeros dos, y usarlas (personalización real) al recomendar en el tercero.",
+    "turns": [
+      {
+        "message": "I really enjoy an aggressive melee playstyle.",
+        "answer": "I've noted that you enjoy an aggressive melee playstyle. I'll keep this in mind for future recommendations.",
+        "sources": []
+      },
+      {
+        "message": "My favorite weapon type is katanas.",
+        "answer": "Understood. I've updated your preferences to include katanas as your favorite weapon type.",
+        "sources": []
+      },
+      {
+        "message": "Given what you know about me, what weapon should I use?",
+        "answer": "Here are some katana recommendations that fit your aggressive melee playstyle:\n\n### 1. Nagakiba\n\n**Why it fits:** This katana boasts an impressive length, which is excellent for aggressive melee as it allows for powerful thrusting attacks and maintaining distance while still being offensive. Its reach can help you control engagements.\n**What it brings:**\n*   **Attack Power:** Phy 115\n*   **Required Attributes:** Str 18, Dex 22\n*   **Scaling:** Str D, Dex C\n**Lore:** This is the signature weapon of Yura, the hunter of Bloody Fingers, known for its ferociously long blade.\n\n### 2. Meteoric Ore Blade\n\n**Why it fits:** The description mentions it delivers \"slashes of such ferocity that the impact is said to resemble the crash of a falling meteor,\" which aligns perfectly with an aggressive playstyle focused on impactful strikes. It also deals magic damage, adding versatility.\n**What it brings:**\n*   **Attack Power:** Phy 112, Mag 72\n*   **Required Attributes:** Str 15, Dex 14, Int 18\n*   **Scaling:** Str D, Dex E, Int D\n\n### 3. Uchigatana\n\n**Why it fits:** The Uchigatana is noted for its \"extraordinary sharpness\" and its ability to cause blood loss with its slash attacks. Blood loss is a highly aggressive mechanic that can quickly deplete enemy health, making it ideal for a fast-paced, offensive approach.\n**What it brings:**\n*   **Attack Power:** Phy 115\n*   **Required Attributes:** Str 11, Dex 15\n*   **Scaling:** Str D, Dex D\n*   **Effect:** Slash attacks cause blood loss.\n**Lore:** This unique weapon is wielded by the samurai from the Land of Reeds.\n\n**Sources**\n- weapon · Nagakiba\n- weapon · Meteoric Ore Blade\n- weapon · Uchigatana",
+        "sources": [
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69728e6al0i1peyh4scwxfhl357",
+            "name": "Nagakiba"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69513a8al0i1pf3ozolljjevfk",
+            "name": "Meteoric Ore Blade"
+          },
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69cd8a23l0i1peugvwepjdkaqh",
+            "name": "Uchigatana"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {
+        "playstyle": "aggressive melee",
+        "favorite_weapon_type": "katanas"
+      },
+      "stats": {}
+    }
+  },
+  {
+    "id": "persistent-memory-preference",
+    "category": "persistent_memory",
+    "notes": "La preferencia debe sobrevivir a una sesión ADK nueva (logout+login simulado) porque vive en Firestore, no en el contexto conversacional.",
+    "turns": [
+      {
+        "message": "I main a bleed build with high arcane scaling.",
+        "answer": "Understood! I've noted that you main a bleed build with high Arcane scaling. How can I help you, Tarnished?",
+        "sources": []
+      },
+      {
+        "message": "What do you remember about my preferences?",
+        "answer": "I remember that your preferred build type is \"bleed\" and your primary stat is \"arcane\".",
+        "sources": []
+      }
+    ],
+    "final_profile": {
+      "preferences": {
+        "build_type": "bleed",
+        "primary_stat": "arcane"
+      },
+      "stats": {}
+    }
+  },
+  {
+    "id": "persistent-memory-stats",
+    "category": "persistent_memory",
+    "notes": "Igual que el anterior pero con stats numéricos en vez de preferencias cualitativas.",
+    "turns": [
+      {
+        "message": "My character is level 90, with 40 vigor and 50 dexterity.",
+        "answer": "Understood. I've updated your character's stats: Level 90, Vigor 40, and Dexterity 50.",
+        "sources": []
+      },
+      {
+        "message": "What are my current stats?",
+        "answer": "You currently have:\n*   **Dexterity:** 50\n*   **Level:** 90\n*   **Vigor:** 40",
+        "sources": []
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {
+        "vigor": 40,
+        "dexterity": 50,
+        "level": 90
+      }
+    }
+  },
+  {
+    "id": "memory-correction",
+    "category": "memory_correction",
+    "notes": "El agente debe reemplazar el valor viejo, no acumularlo (no debe decir que juega ambos builds a la vez).",
+    "turns": [
+      {
+        "message": "I play a strength-focused build.",
+        "answer": "Understood! I've noted that you play a strength-focused build. I'll keep that in mind for future recommendations.",
+        "sources": []
+      },
+      {
+        "message": "Actually I don't play strength anymore, I switched to a full intelligence caster.",
+        "answer": "Got it! I've updated your build preference to \"full intelligence caster.\"",
+        "sources": []
+      },
+      {
+        "message": "What build am I currently playing?",
+        "answer": "You are currently playing an intelligence caster build.",
+        "sources": []
+      }
+    ],
+    "final_profile": {
+      "preferences": {
+        "build": "intelligence caster"
+      },
+      "stats": {}
+    }
+  },
+  {
+    "id": "memory-forget",
+    "category": "memory_forget",
+    "notes": "Tras el olvido explícito, el agente no debe seguir afirmando esa preferencia.",
+    "turns": [
+      {
+        "message": "I really like using katanas.",
+        "answer": "Great! Katanas are a popular choice in Elden Ring. I'll keep that in mind for future recommendations.",
+        "sources": []
+      },
+      {
+        "message": "Please forget that I like katanas.",
+        "answer": "Your preference for katanas has been forgotten. Is there anything else I can help you with?",
+        "sources": []
+      },
+      {
+        "message": "What weapon types do I prefer?",
+        "answer": "It looks like you haven't specified any preferred weapon types yet.",
+        "sources": []
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "out-of-kb-real-world",
+    "category": "out_of_kb",
+    "notes": "Pregunta real pero fuera del corpus. Debe rechazar responder con la frase de insuficiencia, no usar conocimiento general.",
+    "turns": [
+      {
+        "message": "What is the capital of France?",
+        "answer": "I don't have enough information in my knowledge base to answer that with confidence.",
+        "sources": []
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  },
+  {
+    "id": "out-of-kb-fictional",
+    "category": "out_of_kb",
+    "notes": "Pregunta sobre lore de Elden Ring inventado/no documentado. Debe rechazar, no inventar un final falso.",
+    "turns": [
+      {
+        "message": "Tell me about the secret ending where the Tarnished becomes a god of dragons.",
+        "answer": "I don't have enough information in my knowledge base to confirm a \"secret ending where the Tarnished becomes a god of dragons.\" My search results show several dragon-related items and incantations, but nothing about an ending like that.",
+        "sources": [
+          {
+            "entity_type": "weapon",
+            "entity_id": "17f69598b19l0i1ox85gn7f2sgqpad",
+            "name": "Grafted Dragon"
+          },
+          {
+            "entity_type": "incantation",
+            "entity_id": "17f69850e86l0hynws5vlzzny9q7y",
+            "name": "Dragonbolt Blessing"
+          },
+          {
+            "entity_type": "armor",
+            "entity_id": "17f69a9d818l0i0nvqxy32740gd00f",
+            "name": "Malformed Dragon Armor"
+          },
+          {
+            "entity_type": "incantation",
+            "entity_id": "17f69603e55l0hyo92oip6kr38j99r",
+            "name": "Theodorix's Magma"
+          },
+          {
+            "entity_type": "incantation",
+            "entity_id": "17f6958b760l0hyo6c41h81a4ao9ihh",
+            "name": "Placidusax's Ruin"
+          },
+          {
+            "entity_type": "incantation",
+            "entity_id": "17f694d5050l0hyo7rhkcg4j0qaii",
+            "name": "Smarag's Glintstone Breath"
+          },
+          {
+            "entity_type": "incantation",
+            "entity_id": "17f6919abe5l0hynwx7opzx5u5zvs",
+            "name": "Dragonfire"
+          },
+          {
+            "entity_type": "boss",
+            "entity_id": "17f696d979al0i1v1775oof02bi8oh",
+            "name": "Rykard, Lord Of Blasphemy"
+          }
+        ]
+      }
+    ],
+    "final_profile": {
+      "preferences": {},
+      "stats": {}
+    }
+  }
+]

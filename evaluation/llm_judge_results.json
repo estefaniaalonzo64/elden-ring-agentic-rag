@@ -1,0 +1,158 @@
+[
+  {
+    "case_id": "lore-01",
+    "category": "lore",
+    "verdict": {
+      "groundedness": 2,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": true,
+      "reason": "The agent incorrectly states that Malenia drops Millicent's Prosthesis. This item is obtained through Millicent's questline, not directly from Malenia."
+    }
+  },
+  {
+    "case_id": "lore-02",
+    "category": "lore",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The answer accurately describes Ranni the Witch, including her location and a direct quote, all of which are directly supported by the cited source. Personalization was not required for this lore question."
+    }
+  },
+  {
+    "case_id": "retrieval-multilingual-es",
+    "category": "retrieval_multilingual",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The answer directly provides the requested attack statistics for the Uchigatana and correctly cites the weapon as its source. No personalization was needed or attempted."
+    }
+  },
+  {
+    "case_id": "retrieval-multilingual-en",
+    "category": "retrieval_multilingual",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent accurately described the Meteorite Staff, including its lore, unique properties, and detailed statistics, all of which are consistent with the cited source. Personalization was not required for this factual query."
+    }
+  },
+  {
+    "case_id": "recommendation-dex",
+    "category": "recommendation",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent provided excellent, relevant recommendations for katanas suitable for a dexterity build, directly using the player's stated preferences. All facts presented appear grounded in the cited weapon entities."
+    }
+  },
+  {
+    "case_id": "recommendation-int",
+    "category": "recommendation",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The answer directly addresses the user's question with relevant recommendations. All factual claims about the recommended items (lore, effects, and benefits) are well-grounded in the provided sources. Personalization was not applicable due to an empty user profile."
+    }
+  },
+  {
+    "case_id": "recommendation-memory",
+    "category": "recommendation_memory",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent provided highly relevant and personalized weapon recommendations (katanas) tailored to the user's aggressive melee playstyle. All factual claims about the weapons are explicitly linked to the cited sources, and no hallucinations were detected."
+    }
+  },
+  {
+    "case_id": "persistent-memory-preference",
+    "category": "persistent_memory",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent accurately recalled and stated the user's preferences from the player profile, directly answering the question. No external sources were needed as it was a recall of user-specific information."
+    }
+  },
+  {
+    "case_id": "persistent-memory-stats",
+    "category": "persistent_memory",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent accurately reported the user's stats as stored in the player profile. No external sources were needed or cited, as the information came directly from the personalized profile."
+    }
+  },
+  {
+    "case_id": "memory-correction",
+    "category": "memory_correction",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent accurately identified the user's current build based on the updated player profile and previous conversation history. It directly answered the question using personalized information."
+    }
+  },
+  {
+    "case_id": "memory-forget",
+    "category": "memory_forget",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent accurately reported that no weapon preferences were stored in the player profile, directly answering the personalized question. No external sources were needed or cited for this internal profile query."
+    }
+  },
+  {
+    "case_id": "out-of-kb-real-world",
+    "category": "out_of_kb",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 4,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent correctly identified that the question was outside its knowledge domain and refused to answer, which is appropriate behavior. No factual claims were made, and thus no sources were needed."
+    }
+  },
+  {
+    "case_id": "out-of-kb-fictional",
+    "category": "out_of_kb",
+    "verdict": {
+      "groundedness": 5,
+      "relevance": 5,
+      "personalization": 5,
+      "source_alignment": 5,
+      "hallucination_detected": false,
+      "reason": "The agent correctly states it cannot confirm the existence of the ending based on its knowledge, which is consistent with the provided sources that do not mention such an ending. It accurately describes what its search results did contain without making false claims."
+    }
+  }
+]
