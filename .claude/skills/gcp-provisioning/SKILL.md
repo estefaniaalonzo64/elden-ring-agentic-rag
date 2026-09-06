@@ -151,9 +151,12 @@ SERVICE_URL=$(gcloud run services describe elden-ring-agent \
   --project ah-estefania-alozno --region us-central1 --format='value(status.url)')
 
 curl -s "$SERVICE_URL/health"
-curl -s -X POST "$SERVICE_URL/register" -H 'Content-Type: application/json' \
-  -d '{"username":"smoketest","password":"changeme123"}'
+curl -s -X POST "$SERVICE_URL/login" -H 'Content-Type: application/json' \
+  -d '{"username":"<uno de los 3 usuarios reales>","password":"<su password>"}'
 ```
+
+No hay `/register` público — el registro se cerró a un roster fijo de usuarios creados vía
+`scripts/create_user.py` (ver `SYSTEM_HEARTBEAT.md`). No lo reintroduzcas en el smoke test.
 
 Si `/health` no responde `{"status":"ok"}`, revisar logs antes de tocar IAM o red:
 

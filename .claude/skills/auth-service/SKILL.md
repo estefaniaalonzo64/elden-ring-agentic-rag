@@ -57,10 +57,17 @@ nueva (ver skill `player-memory`) y devolverla junto con el token:
 { "access_token": "...", "session_id": "..." }
 ```
 
-## Endpoints (PRD §24)
+## Endpoints (PRD §24 — con override del usuario, ver SYSTEM_HEARTBEAT.md)
 
-- `POST /register` → `{username, password}` → `{created: true}` (o error si el username
-  ya existe).
+> **Decisión explícita del usuario (2026-09-05), sobre-escribe el PRD §24 en este punto:**
+> `POST /register` **no se expone por HTTP**. El Web App es de acceso anónimo
+> (`ANYONE_ANONYMOUS`), y el dueño del proyecto no quiere que cualquiera cree una cuenta y
+> gaste tokens de Gemini. El registro se hace solo con `scripts/create_user.py` (llama a
+> `register()` de este mismo skill), corrido localmente contra Firestore real. No reintroduzcas
+> `POST /register` salvo que el usuario lo pida explícitamente de nuevo.
+
+- `register(username, password)` (función de servicio, no endpoint) → crea el usuario o
+  levanta `UsernameTakenError` si ya existe. La usa `scripts/create_user.py`.
 - `POST /login` → `{username, password}` → `{access_token, session_id}`.
 - Dependencia reusable de auth para `/chat` y cualquier endpoint protegido futuro.
 

@@ -3,21 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.agent.runner import run_turn
 from backend.auth.dependencies import get_current_user_id
-from backend.auth.service import (
-    InvalidCredentialsError,
-    UsernameTakenError,
-    authenticate,
-    register,
-)
+from backend.auth.service import InvalidCredentialsError, authenticate
 from backend.config import get_settings
-from backend.models.api import (
-    ChatRequest,
-    ChatResponse,
-    LoginRequest,
-    LoginResponse,
-    RegisterRequest,
-    RegisterResponse,
-)
+from backend.models.api import ChatRequest, ChatResponse, LoginRequest, LoginResponse
 from backend.repositories.firestore_repository import add_chat_message, get_chat_session
 
 app = FastAPI(title="Elden Ring Agentic RAG Guide")
@@ -36,15 +24,6 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.post("/register", response_model=RegisterResponse)
-def register_endpoint(payload: RegisterRequest) -> RegisterResponse:
-    try:
-        register(payload.username, payload.password)
-    except UsernameTakenError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists") from exc
-    return RegisterResponse(created=True)
 
 
 @app.post("/login", response_model=LoginResponse)

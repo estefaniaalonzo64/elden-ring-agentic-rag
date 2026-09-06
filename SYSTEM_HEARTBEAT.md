@@ -10,7 +10,7 @@ al terminar su turno: qué hizo, qué encontró, qué falta. No es documentació
 | Fase | Qué es | Estado |
 |---|---|---|
 | 1 | Skeleton (FastAPI + `/health`, Dockerfile) | ✅ hecho, validado local |
-| 2 | Auth + Firestore (`/register`, `/login`, JWT) | ✅ hecho, validado contra Firestore real |
+| 2 | Auth + Firestore (`/login`, JWT — **sin** `/register` público) | ✅ hecho, validado contra Firestore real |
 | 3 | Memoria (`player_profiles`, 3 tools) | ✅ hecho, validado contra Firestore real |
 | 4 | RAG (`search_elden_ring_knowledge`) | ✅ hecho, validado contra BigQuery real (5 queries de aceptación del handoff) |
 | 5 | ADK (`EldenRingGuideAgent`, `/chat`) | ✅ hecho, validado contra Gemini/Vertex AI real |
@@ -31,10 +31,10 @@ No los vuelvas a crear/verificar desde cero — ya existen:
   `users`, `player_profiles`, `chat_sessions`, `chat_sessions/{id}/messages`.
 - BigQuery: `elden_ring_gold.entity_embeddings_vertex` ya existe (1208 filas, ver
   `VERTEX_RAG_HANDOFF.md` en la raíz — contrato completo copiado desde `practica_uno`).
-- Usuarios de prueba ya registrados (Firestore real): `smoketest`, `smoketest_b`
-  (password `changeme123` en ambos). Su `player_profiles` tiene datos de smoke-test reales
-  (preferencias de bleed/dexterity aprendidas automáticamente en Fase 5) — no son basura,
-  déjalos o límpialos si estorban.
+- Usuarios reales creados (Firestore real, roster cerrado — ver Registro cerrado abajo):
+  `estefania`, `profesor`, `usuariodex`. Passwords **no** están en este repo — las conoce el
+  dueño del proyecto. `smoketest`/`smoketest_b` (cuentas de prueba de las fases anteriores) se
+  **borraron** — no los recrees, ya no son parte del roster.
 
 ## Gotchas reales encontrados (no obvios desde el código)
 
@@ -69,6 +69,23 @@ No los vuelvas a crear/verificar desde cero — ya existen:
    manifest real usa `"webapp"` (minúsculas) — `"webApp"` da `unknown fields: [webApp]`.
 6. **`clasp` vía el binario de Windows desde WSL es lento** (cada invocación puede tardar
    >60s, el Bash tool las manda a background) — es normal, no es que algo esté colgado.
+
+## Registro cerrado (decisión del usuario, 2026-09-05)
+
+El usuario pidió explícitamente **quitar el registro público** porque el Web App es de acceso
+anónimo (`ANYONE_ANONYMOUS`, ver Fase 7) y no quiere que cualquiera cree una cuenta y gaste
+tokens de Gemini. Cambios:
+
+- `POST /register` **ya no existe** en `backend/main.py` (ni `RegisterRequest`/
+  `RegisterResponse` en `backend/models/api.py`). `/login` sigue igual.
+- `backend/auth/service.py` conserva `register()`/`UsernameTakenError` — los usa
+  `scripts/create_user.py`, no la API pública.
+- Alta de usuarios nuevos: `PYTHONPATH=. .venv/bin/python scripts/create_user.py <user> <pass>`
+  (solo local, contra Firestore real, nunca por HTTP). Idempotente: si el username ya existe,
+  lo reporta y no falla.
+- Roster actual: `estefania`, `profesor`, `usuariodex` (passwords fuera del repo).
+- Si en el futuro se pide reabrir el registro, es una reversión explícita de esta decisión —
+  no la reintroduzcas por tu cuenta sin que el usuario lo pida de nuevo.
 
 ## Bloqueos activos
 
@@ -107,11 +124,12 @@ No los vuelvas a crear/verificar desde cero — ya existen:
 
 Fase 8 — Cloud Run: habilitar `run.googleapis.com`/`cloudbuild.googleapis.com`/
 `artifactregistry.googleapis.com`, `gcloud run deploy` (ver skill `gcp-provisioning` §5),
-smoke test `/health` + `/register` contra la URL real. Luego: setear `BACKEND_URL` en las
-Script Properties del Apps Script ya publicado (Fase 7, ver arriba) y validar login+chat
-desde `https://script.google.com/macros/s/AKfycbyVXj.../exec` antes de pasar a Fase 9 (Sites).
+smoke test `/health` + `/login` (con uno de los 3 usuarios reales) contra la URL real. Luego:
+setear `BACKEND_URL` en las Script Properties del Apps Script ya publicado (Fase 7, ver
+arriba) y validar login+chat desde
+`https://script.google.com/macros/s/AKfycbyVXj.../exec` antes de pasar a Fase 9 (Sites).
 
 ---
-*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — Fase 7 publicada
-(Web App real arriba). Actualiza esta sección al cerrar tu turno: fecha, qué cambiaste, qué
-falta.*
+*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — Fase 7 publicada (Web App
+real arriba) + registro público eliminado (roster cerrado de 3 usuarios). Actualiza esta
+sección al cerrar tu turno: fecha, qué cambiaste, qué falta.*
