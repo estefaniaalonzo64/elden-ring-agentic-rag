@@ -15,9 +15,9 @@ al terminar su turno: qué hizo, qué encontró, qué falta. No es documentació
 | 4 | RAG (`search_elden_ring_knowledge`) | ✅ hecho, validado contra BigQuery real (5 queries de aceptación del handoff) |
 | 5 | ADK (`EldenRingGuideAgent`, `/chat`) | ✅ hecho, validado contra Gemini/Vertex AI real |
 | 6 | Transcript (`chat_sessions/{id}/messages`) | ✅ hecho, validado (sobrevive logout, aislamiento A/B) |
-| 7 | Frontend Apps Script (Login/Registro/Chat) | ✅ código completo, **sin publicar** (falta `clasp`, ver Bloqueos) |
+| 7 | Frontend Apps Script (Login/Registro/Chat) | ✅ **publicado** como Web App, ver URL abajo. Falta setear `BACKEND_URL` (depende de Fase 8) |
 | 8 | Cloud Run (deploy real) | ⏳ pendiente — siguiente paso natural |
-| 9 | Google Sites (embed) | ⏳ pendiente — depende de 7 (publicar) y 8 (URL real) |
+| 9 | Google Sites (embed) | ⏳ pendiente — depende de 8 (URL real de Cloud Run) |
 | 10 | Evaluación (manual + LLM-as-judge) | ⏳ pendiente |
 
 ## Recursos GCP ya provisionados (proyecto `ah-estefania-alozno`)
@@ -58,19 +58,40 @@ No los vuelvas a crear/verificar desde cero — ya existen:
    (más lento en WSL). Cuidado con `VIRTUAL_ENV` heredado de otro proyecto hermano
    (`diplo2026/.venv`) — si `uv pip install` no deja los paquetes donde esperas, hacer
    `unset VIRTUAL_ENV` antes o pasar `--python .venv/bin/python` explícito.
+5. **`appsscript.json`: `webapp.access: "ANYONE_ANONYMOUS"` es incompatible con
+   `webapp.executeAs: "USER_ACCESSING"`** — `clasp push` lo rechaza con un error genérico
+   ("Invalid manifest file") sin decir por qué. Tiene sentido: no puedes "ejecutar como el
+   usuario que accede" si ese usuario es anónimo/no identificado. La combinación válida para
+   acceso público sin login de Google es `access: ANYONE_ANONYMOUS` + `executeAs:
+   USER_DEPLOYING` (el script siempre corre con la identidad del desarrollador — está bien
+   porque `Code.gs` no llama APIs de Google que necesiten la identidad del visitante). El
+   mensaje de tip de `clasp create-script` sugiere la clave `"webApp"` (camelCase) pero el
+   manifest real usa `"webapp"` (minúsculas) — `"webApp"` da `unknown fields: [webApp]`.
+6. **`clasp` vía el binario de Windows desde WSL es lento** (cada invocación puede tardar
+   >60s, el Bash tool las manda a background) — es normal, no es que algo esté colgado.
 
 ## Bloqueos activos
 
-- **`clasp` (Apps Script CLI) no está instalado** y el usuario no tiene Node/npm nativo de WSL
-  (solo el `node.exe`/`npm` de Windows expuesto vía `/mnt/c`, poco fiable para instalar global
-  por permisos). El usuario necesita correr esto él mismo en una terminal WSL real (no vía
-  Claude Code, porque `sudo` pide contraseña interactiva):
-  ```bash
-  sudo apt update && sudo apt install -y nodejs npm
-  npm install -g @google/clasp
-  clasp login   # abre navegador, requiere su cuenta Google
-  ```
-  Una vez hecho esto, retomar Fase 7 (publicar el Web App) y Fase 9 (embed en Sites).
+- Ninguno bloqueante ahora mismo. `clasp` ya está instalado y logueado (vía npm de Windows,
+  `/mnt/c/Users/estef/AppData/Roaming/npm/clasp`), y el Web App de Fase 7 ya está publicado
+  (ver sección Frontend abajo). El único pendiente real es Fase 8 (Cloud Run) para tener una
+  `BACKEND_URL` real que setear en las Script Properties del proyecto Apps Script.
+
+## Frontend publicado (Fase 7)
+
+- Script ID: `1G7TWkov2cmtmMezsRpyPzIAUvGG9N-wGIgWTJRa-4hmeHwkUPkXtSB9R`
+  (editor: `clasp open-script` desde `frontend/apps-script/`, o
+  `https://script.google.com/d/<scriptId>/edit`).
+- Deployment id `AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM`
+  (descripción "Elden Ring Guide MVP", versión 1).
+- **URL pública del Web App** (confirmado `curl` → HTTP 200, sirve el HTML real):
+  `https://script.google.com/macros/s/AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM/exec`
+- **Falta**: entrar al editor (`clasp open-script`) → Project Settings → Script Properties →
+  agregar `BACKEND_URL` = URL de Cloud Run (Fase 8). Sin eso, el login/chat fallan con
+  "BACKEND_URL no está configurado" (mensaje intencional en `script.html`).
+- Para repushear tras cambios de código: `cd frontend/apps-script && clasp push --force`. Para
+  una nueva versión del deployment: `clasp create-deployment --deploymentId <id> -d "..."`
+  (o `redeploy`), no crear un deployment nuevo cada vez salvo que quieras otra URL.
 
 ## Config local
 
@@ -86,9 +107,11 @@ No los vuelvas a crear/verificar desde cero — ya existen:
 
 Fase 8 — Cloud Run: habilitar `run.googleapis.com`/`cloudbuild.googleapis.com`/
 `artifactregistry.googleapis.com`, `gcloud run deploy` (ver skill `gcp-provisioning` §5),
-smoke test `/health` + `/register` contra la URL real, y luego volver a Fase 7/9 con esa URL
-para `BACKEND_URL` en Script Properties.
+smoke test `/health` + `/register` contra la URL real. Luego: setear `BACKEND_URL` en las
+Script Properties del Apps Script ya publicado (Fase 7, ver arriba) y validar login+chat
+desde `https://script.google.com/macros/s/AKfycbyVXj.../exec` antes de pasar a Fase 9 (Sites).
 
 ---
-*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5). Actualiza esta sección al
-cerrar tu turno: fecha, qué cambiaste, qué falta.*
+*Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — Fase 7 publicada
+(Web App real arriba). Actualiza esta sección al cerrar tu turno: fecha, qué cambiaste, qué
+falta.*

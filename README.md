@@ -34,13 +34,26 @@ Código en [`frontend/apps-script/`](./frontend/apps-script/) (`Code.gs`, `Index
 `styles.html`, `script.html`). El navegador llama al backend directamente vía `fetch()`
 (por eso el backend habilita CORS permisivo — ver TODO-06 en el PRD).
 
-Publicarlo requiere una sesión de Google interactiva, así que estos pasos son manuales:
+**Ya está publicado.** Proyecto Apps Script creado y deployado vía `clasp`
+(script id en `frontend/apps-script/.clasp.json`, detalle completo en
+`SYSTEM_HEARTBEAT.md`). URL pública del Web App:
 
-1. Instalar `clasp` y autenticarte (una vez): `npm install -g @google/clasp && clasp login`.
-2. Crear el proyecto Apps Script apuntando a esta carpeta:
-   `cd frontend/apps-script && clasp create --type webapp --title "Elden Ring Guide"`.
-3. Subir el código: `clasp push`.
-4. En el editor de Apps Script (`clasp open`): Project Settings → Script Properties →
-   agregar `BACKEND_URL` con la URL del servicio Cloud Run (Fase 8).
-5. Deploy → New deployment → Web app (Execute as: User accessing the app, Access: Anyone).
-6. Incrustar la URL del Web App publicado en un Google Site (Fase 9).
+```
+https://script.google.com/macros/s/AKfycbyVXj_a9TekA26uc8fOf8CtsmPX_uMZqu51B9h3vanrWWcyf2LWQlItqUPKWf7Z5ViM/exec
+```
+
+Pendiente: setear `BACKEND_URL` en Script Properties una vez exista la URL de Cloud Run
+(Fase 8) — hasta entonces el login/chat muestran "BACKEND_URL no está configurado".
+
+Para volver a publicar cambios de código:
+
+```bash
+cd frontend/apps-script
+clasp push --force
+```
+
+`appsscript.json` usa `webapp.access: "ANYONE_ANONYMOUS"` (sin login de Google) +
+`webapp.executeAs: "USER_DEPLOYING"` — esa combinación es obligatoria: `ANYONE_ANONYMOUS`
+no es compatible con `USER_ACCESSING` (no hay identidad de usuario que "ejecutar como" si
+el acceso es anónimo). Ver el gotcha #5 en `SYSTEM_HEARTBEAT.md` si esto cambia y `clasp
+push` empieza a fallar con "Invalid manifest file".
