@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('styles'); ?>
+</head>
+<body>
+
+  <section id="screen-login" class="screen">
+    <h1>Elden Ring Guide</h1>
+    <form id="login-form">
+      <input type="text" id="login-username" placeholder="Usuario" autocomplete="username" required>
+      <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="error" id="login-error"></p>
+    <p class="switch">¿No tienes cuenta? <a href="#" id="go-to-register">Regístrate</a></p>
+  </section>
+
+  <section id="screen-register" class="screen" hidden>
+    <h1>Crear cuenta</h1>
+    <form id="register-form">
+      <input type="text" id="register-username" placeholder="Usuario" autocomplete="username" required>
+      <input type="password" id="register-password" placeholder="Contraseña" autocomplete="new-password" required>
+      <button type="submit">Registrarse</button>
+    </form>
+    <p class="error" id="register-error"></p>
+    <p class="switch">¿Ya tienes cuenta? <a href="#" id="go-to-login">Inicia sesión</a></p>
+  </section>
+
+  <section id="screen-chat" class="screen" hidden>
+    <header class="chat-header">
+      <h1>Elden Ring Guide</h1>
+      <button type="button" id="logout-button" class="secondary">Cerrar sesión</button>
+    </header>
+    <div id="messages"></div>
+    <form id="chat-form">
+      <textarea id="chat-input" placeholder="Pregunta algo sobre Elden Ring..." rows="2" required></textarea>
+      <button type="submit">Enviar</button>
+    </form>
+  </section>
+
+  <script>
+    const BACKEND_URL = <?!= JSON.stringify(getBackendUrl()) ?>;
+  </script>
+  <?!= include('script'); ?>
+</body>
+</html>
