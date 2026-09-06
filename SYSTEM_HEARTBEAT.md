@@ -203,12 +203,29 @@ opcional/de pulido — no hay pendientes bloqueantes.
   vía smoke tests con `curl` durante el desarrollo — no quedaron como tests automatizados de
   integración.
 
+## PDF de entrega (PRD §45)
+
+- `docs/entrega.html` (fuente) → `docs/entrega.pdf` (9 páginas), generado con `weasyprint`
+  (agregado a `requirements-dev.txt`). Sigue exactamente el índice del PRD §45 (1–13:
+  problema, Medallion, arquitectura con diagrama SVG inline, RAG, agente, memoria, auth,
+  despliegue, evaluación, decisiones/trade-offs, limitaciones, mejoras futuras, URL).
+- Regenerar tras editar el HTML:
+  ```bash
+  unset VIRTUAL_ENV && .venv/bin/python -c "from weasyprint import HTML; HTML(filename='docs/entrega.html').write_pdf('docs/entrega.pdf')"
+  ```
+- Verificado visualmente (no solo generado a ciegas): se instaló `pymupdf` temporalmente para
+  renderizar páginas de muestra a PNG y confirmar que tablas/diagrama/callouts se ven bien —
+  `pypdf`/`pymupdf` NO quedaron en `requirements-dev.txt` (fueron solo para QA de esta sesión,
+  no hacen falta para regenerar el PDF).
+- Contiene los hallazgos honestos de Fase 10 (falso positivo del juez en `lore-01`,
+  duplicado de Malenia en el corpus) y la narrativa completa de la desviación Apps
+  Script→frontend estático — no es un documento "maquillado", refleja lo que realmente pasó.
+
 ## Próximo paso sugerido
 
-Ninguno bloqueante — el MVP (PRD §44, con la desviación de Fase 7/9 documentada) está
-completo. Si se retoma el proyecto, lo más valioso sería: (a) preparar el PDF de entrega
-(PRD §45.9) con las capturas/evidencia ya generada, (b) si se quiere pulir más, investigar
-por qué a veces se mezcla idioma (gotcha #2) con una batería más grande de casos en inglés.
+Ninguno bloqueante — el MVP (PRD §44, con la desviación de Fase 7/9 documentada) y el PDF de
+entrega (§45) están completos. Si se retoma el proyecto, lo más valioso sería investigar por
+qué a veces se mezcla idioma (gotcha #2) con una batería más grande de casos en inglés.
 
 ---
 *Última actualización: 2026-09-05, sesión Claude Code (Sonnet 5) — se abandonó Apps

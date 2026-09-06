@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Elden Ring Agentic RAG Guide — Entrega MVP</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2cm 2.4cm 2cm;
+    @bottom-center { content: counter(page) " / " counter(pages); font-size: 9px; color: #8a7a63; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif;
+    color: #2a2118;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  h1, h2, h3 { font-family: 'DejaVu Serif', Georgia, serif; color: #6b4a1e; }
+  .cover {
+    text-align: center;
+    padding-top: 5cm;
+  }
+  .cover h1 {
+    font-size: 30px;
+    margin-bottom: 6px;
+    color: #6b4a1e;
+    letter-spacing: 0.02em;
+  }
+  .cover .subtitle { font-size: 15px; color: #8a7a63; margin-bottom: 40px; }
+  .cover table {
+    margin: 40px auto 0;
+    font-size: 11px;
+    border-collapse: collapse;
+  }
+  .cover table td { padding: 4px 10px; text-align: left; }
+  .cover table td:first-child { color: #8a7a63; text-align: right; }
+  .page-break { page-break-before: always; }
+  h1 { font-size: 20px; border-bottom: 2px solid #c9a24a; padding-bottom: 4px; margin-top: 0; }
+  h2 { font-size: 14px; color: #6b4a1e; margin-top: 22px; margin-bottom: 6px; }
+  h3 { font-size: 12px; color: #6b4a1e; margin-top: 14px; margin-bottom: 4px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  code {
+    background: #f4efe4; padding: 1px 4px; border-radius: 3px;
+    font-family: 'DejaVu Sans Mono', monospace; font-size: 10px;
+  }
+  pre {
+    background: #f4efe4; padding: 8px 10px; border-radius: 4px;
+    font-family: 'DejaVu Sans Mono', monospace; font-size: 9.5px;
+    white-space: pre-wrap; border-left: 3px solid #c9a24a;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 10px; }
+  th, td { border: 1px solid #d8c9a8; padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: #f4efe4; color: #6b4a1e; }
+  .badge {
+    display: inline-block; padding: 1px 7px; border-radius: 9px;
+    font-size: 9px; font-weight: bold;
+  }
+  .badge-ok { background: #dcefdc; color: #2c6b2f; }
+  .badge-warn { background: #f6e6c8; color: #8a5a12; }
+  .callout {
+    background: #f4efe4; border-left: 3px solid #c9a24a;
+    padding: 8px 12px; margin: 10px 0; font-size: 10px;
+  }
+  .callout.honest { border-left-color: #b23b3b; background: #f7e9e6; }
+  .small { font-size: 9.5px; color: #6b5c45; }
+  a { color: #6b4a1e; }
+  .diagram-caption { text-align: center; font-size: 9.5px; color: #6b5c45; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ============ PORTADA ============ -->
+<div class="cover">
+  <h1>Elden Ring Agentic RAG Guide</h1>
+  <div class="subtitle">Entrega MVP — Guía conversacional agéntica con RAG, memoria persistente y despliegue en producción</div>
+  <table>
+    <tr><td>Autora:</td><td>Estefanía Alonzo</td></tr>
+    <tr><td>Proyecto GCP:</td><td><code>ah-estefania-alozno</code></td></tr>
+    <tr><td>Servicio activo:</td><td>https://elden-ring-agent-704637212685.us-central1.run.app</td></tr>
+    <tr><td>Fecha:</td><td>Septiembre 2026</td></tr>
+    <tr><td>Documento fuente:</td><td><code>PRD_Elden_Ring_Agentic_RAG_MVP.md</code></td></tr>
+  </table>
+</div>
+
+<!-- ============ 1. PROBLEMA Y OBJETIVO ============ -->
+<div class="page-break"></div>
+<h1>1. Problema y objetivo</h1>
+
+<p>
+El proyecto Medallion previo (<code>practica_uno</code>) produjo un Data Product terminado:
+una capa Gold en BigQuery con ~1,208 entidades de Elden Ring (armaduras, armas, bosses,
+incantations, cenizas de guerra y NPCs) en <code>semantic_documents</code>, más una primera
+estrategia de embeddings (<code>entity_embeddings</code>, E5 local, 384-dim). Ese Data Product
+no tenía, sin embargo, ninguna forma de que un jugador <em>conversara</em> con él: no había
+agente, no había memoria por usuario, no había autenticación ni un canal de recomendación
+personalizada.
+</p>
+
+<p>
+El objetivo de este MVP es construir esa capa faltante — un agente conversacional agéntico
+(Google ADK) que:
+</p>
+<ul>
+  <li>responda preguntas de lore/conocimiento <strong>grounded exclusivamente</strong> en el
+    corpus recuperado por RAG, nunca en el conocimiento preentrenado del LLM;</li>
+  <li>recomiende equipo (arma/armadura/incantation/ceniza) personalizado al perfil del
+    jugador cuando la petición lo amerita, devolviendo hasta 3 opciones razonadas;</li>
+  <li>recuerde preferencias y stats del jugador de forma persistente entre sesiones, sin
+    onboarding explícito — las detecta de la conversación natural;</li>
+  <li>aísle completamente la memoria y el historial entre usuarios distintos;</li>
+  <li>corra en producción real (Cloud Run), no solo en un notebook o entorno local.</li>
+</ul>
+
+<p>
+No es un ejercicio de "wrapear un LLM" — el principio no negociable del proyecto (P-01,
+grounding estricto) es que ningún hecho sobre Elden Ring puede salir del modelo sin pasar
+primero por <code>search_elden_ring_knowledge</code> contra el corpus real.
+</p>
+
+<!-- ============ 2. REUTILIZACIÓN DEL MEDALLION ============ -->
+<h1>2. Reutilización del proyecto Medallion</h1>
+
+<pre>Bronze → Silver → Gold → Agentic RAG (este proyecto)</pre>
+
+<p>
+Este proyecto <strong>no reconstruye</strong> nada de las capas Bronze/Silver/Gold del
+proyecto Medallion — las consume como Data Product terminado, de solo lectura:
+</p>
+
+<table>
+  <tr><th>Tabla/artefacto</th><th>Origen</th><th>Uso en este proyecto</th></tr>
+  <tr><td><code>semantic_documents</code></td><td>Gold, capa de texto</td>
+      <td>Contrato de texto (<code>searchable_text</code>) — solo lectura, sin cambios.</td></tr>
+  <tr><td><code>entity_embeddings</code> (E5, 384-dim)</td><td>Gold, estrategia legado</td>
+      <td><strong>Intocable.</strong> No se lee ni se usa en este RAG — es evidencia de un
+          proyecto anterior.</td></tr>
+  <tr><td><code>entity_embeddings_vertex</code> (Vertex, 768-dim)</td><td>Gold, extensión
+      paralela documentada en <code>VERTEX_RAG_HANDOFF.md</code></td>
+      <td>Tabla que consume la tool <code>search_elden_ring_knowledge</code> vía
+          <code>VECTOR_SEARCH</code>. 1,208 filas, 100% de cobertura frente a
+          <code>semantic_documents</code>.</td></tr>
+</table>
+
+<p class="small">
+El handoff (<code>VERTEX_RAG_HANDOFF.md</code>, copiado a este repo) documenta el contrato
+exacto: modelo <code>gemini-embedding-001</code>, dimensión 768, <code>task_type</code>
+asimétrico (<code>RETRIEVAL_DOCUMENT</code> para el corpus, <code>RETRIEVAL_QUERY</code> para
+las preguntas del usuario) y el patrón de <code>ML.GENERATE_EMBEDDING</code> +
+<code>VECTOR_SEARCH</code> replicado en <code>backend/repositories/bigquery_repository.py</code>.
+</p>
+
+<!-- ============ 3. ARQUITECTURA ============ -->
+<h1>3. Arquitectura</h1>
+
+<svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-height:340px;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b4a1e"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill:#f4efe4; stroke:#c9a24a; stroke-width:1.5; rx:6; }
+    .lbl { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; fill:#2a2118; text-anchor:middle; }
+    .lbl-title { font-family: 'DejaVu Sans', sans-serif; font-size: 10px; fill:#6b4a1e; font-weight:bold; text-anchor:middle; }
+    .edge { stroke:#6b4a1e; stroke-width:1.3; fill:none; marker-end:url(#arrow); }
+  </style>
+
+  <rect class="box" x="30" y="20" width="140" height="46"/>
+  <text class="lbl-title" x="100" y="38">Jugador</text>
+  <text class="lbl" x="100" y="54">navegador</text>
+
+  <rect class="box" x="30" y="110" width="140" height="46"/>
+  <text class="lbl-title" x="100" y="128">Frontend estático</text>
+  <text class="lbl" x="100" y="144">index.html / app.js</text>
+
+  <rect class="box" x="30" y="200" width="140" height="60"/>
+  <text class="lbl-title" x="100" y="220">FastAPI</text>
+  <text class="lbl" x="100" y="235">Cloud Run</text>
+  <text class="lbl" x="100" y="249">/login · /chat</text>
+
+  <rect class="box" x="230" y="200" width="150" height="60"/>
+  <text class="lbl-title" x="305" y="220">ADK Runner</text>
+  <text class="lbl" x="305" y="235">EldenRingGuideAgent</text>
+  <text class="lbl" x="305" y="249">google-adk 2.8</text>
+
+  <rect class="box" x="440" y="140" width="150" height="46"/>
+  <text class="lbl-title" x="515" y="158">4 tools</text>
+  <text class="lbl" x="515" y="174">RAG + memoria</text>
+
+  <rect class="box" x="440" y="260" width="150" height="46"/>
+  <text class="lbl-title" x="515" y="278">Gemini</text>
+  <text class="lbl" x="515" y="294">vía Vertex AI</text>
+
+  <rect class="box" x="640" y="30" width="105" height="46"/>
+  <text class="lbl-title" x="692" y="48">BigQuery</text>
+  <text class="lbl" x="692" y="64">Gold</text>
+
+  <rect class="box" x="640" y="100" width="105" height="46"/>
+  <text class="lbl-title" x="692" y="118">Firestore</text>
+  <text class="lbl" x="692" y="134">memoria</text>
+
+  <path class="edge" d="M100,66 L100,110"/>
+  <path class="edge" d="M100,156 L100,200"/>
+  <path class="edge" d="M170,225 L230,225"/>
+  <path class="edge" d="M380,215 L440,180"/>
+  <path class="edge" d="M380,235 L440,270"/>
+  <path class="edge" d="M590,155 L692,100"/>
+  <path class="edge" d="M590,165 L640,60"/>
+</svg>
+<p class="diagram-caption">
+Jugador → Frontend estático (mismo origen) → FastAPI en Cloud Run → ADK Runner →
+EldenRingGuideAgent → 4 tools → BigQuery (RAG) / Firestore (memoria) / Gemini vía Vertex AI.
+</p>
+
+<div class="callout">
+<strong>Desviación frente al diagrama original del PRD:</strong> el PRD proponía Apps Script
+embebido en Google Sites como frontend. Se implementó y se publicó, pero el navegador real
+nunca pudo renderizar el Web App pese a que el servidor ejecutaba <code>doGet()</code>
+correctamente en el 100% de los intentos (ver sección 10, Decisiones y trade-offs). Se
+reemplazó por un frontend estático servido por el mismo FastAPI — mismo origen que la API,
+sin CORS, sin Google Sites. La URL de Cloud Run es la aplicación completa.
+</div>
+
+<!-- ============ 4. RAG ============ -->
+<div class="page-break"></div>
+<h1>4. RAG</h1>
+
+<h2>Corpus</h2>
+<p>
+1,208 documentos en <code>entity_embeddings_vertex</code> (armor 563, weapon 286, boss 105,
+incantation 100, ash 94, npc 60), cobertura 100% frente a <code>semantic_documents</code>.
+</p>
+
+<h2>Embeddings</h2>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Modelo</td><td><code>gemini-embedding-001</code> (Vertex AI, vía modelo remoto de BigQuery ML)</td></tr>
+  <tr><td>Dimensión</td><td>768</td></tr>
+  <tr><td>Task type documentos</td><td><code>RETRIEVAL_DOCUMENT</code></td></tr>
+  <tr><td>Task type queries</td><td><code>RETRIEVAL_QUERY</code></td></tr>
+</table>
+
+<h2>Query embedding</h2>
+<p>
+Cada pregunta del usuario se vectoriza en el momento con
+<code>ML.GENERATE_EMBEDDING</code>, usando el mismo modelo remoto
+(<code>elden_ring_embedding_model</code>) y la misma dimensión que los documentos — el patrón
+asimétrico RETRIEVAL_QUERY/RETRIEVAL_DOCUMENT es obligatorio para que la comparación de
+distancia sea comparable (mezclarlos degrada la recuperación en silencio, sin error).
+</p>
+
+<h2>Vector Search</h2>
+<p>
+<code>VECTOR_SEARCH</code> sobre <code>entity_embeddings_vertex</code>, sin índice ANN — con
+~1,208 documentos el escaneo exacto (<code>distance_type =&gt; 'COSINE'</code>) es suficiente
+y evita complejidad de infraestructura prematura (TODO-07). Filtro opcional por
+<code>entity_types</code> antes de la búsqueda.
+</p>
+
+<h2>Grounding y fuentes</h2>
+<p>
+El agente solo puede afirmar hechos respaldados por <code>search_elden_ring_knowledge</code>.
+Toda respuesta factual o de recomendación cierra con una sección <code>**Sources**</code>
+listando <code>entity_type · name</code> — nunca el <code>entity_id</code> interno ni el
+score/distancia. Ante evidencia insuficiente o irrelevante, el agente responde que no tiene
+información suficiente en su base de conocimiento, en vez de usar su conocimiento
+preentrenado (validado explícitamente en la evaluación, casos <code>out-of-kb-*</code>).
+</p>
+
+<!-- ============ 5. SISTEMA AGÉNTICO ============ -->
+<h1>5. Sistema agéntico</h1>
+
+<h2>ADK</h2>
+<p>
+<code>google-adk</code> 2.8.0 — una API basada en <code>Agent</code>/<code>Runner</code>/
+<code>Event</code>, distinta de tutoriales más antiguos del framework. <code>Agent.tools</code>
+acepta funciones Python planas directamente (ADK las envuelve internamente), lo que permite
+registrar las tools como <em>closures</em> construidas en tiempo de request.
+</p>
+
+<h2>El agente: <code>EldenRingGuideAgent</code></h2>
+<p>Un único agente con exactamente 4 tools:</p>
+<table>
+  <tr><th>Tool</th><th>Función</th></tr>
+  <tr><td><code>search_elden_ring_knowledge</code></td><td>RAG — recuperación semántica sobre BigQuery.</td></tr>
+  <tr><td><code>get_player_profile</code></td><td>Lee preferencias/stats del jugador autenticado.</td></tr>
+  <tr><td><code>update_player_memory</code></td><td>Guarda/corrige preferencias/stats (merge parcial).</td></tr>
+  <tr><td><code>forget_player_memory</code></td><td>Borra campos específicos del perfil (dotted path).</td></tr>
+</table>
+
+<p>
+El <code>user_id</code> se inyecta por <em>closure</em> al construir el agente
+(<code>build_agent(user_id, ...)</code>) — nunca es un parámetro que el LLM pueda rellenar.
+Esto es no negociable (P-03 / PRD §12.4): ninguna tool acepta ni puede aceptar un
+<code>user_id</code> arbitrario del modelo o del payload del chat.
+</p>
+
+<h2>¿Por qué un solo agente y no multiagente?</h2>
+<p>
+El alcance funcional (RAG + memoria + recomendación) no requiere orquestación entre agentes
+especializados — un único agente con 4 tools cubre el flujo completo sin la complejidad
+adicional de handoffs, estado compartido entre agentes, o enrutamiento de intención (P-04,
+complejidad mínima). Introducir sub-agentes sin una necesidad funcional nueva sería
+sobre-ingeniería para este alcance.
+</p>
+
+<!-- ============ 6. MEMORIA ============ -->
+<div class="page-break"></div>
+<h1>6. Memoria</h1>
+
+<p>Tres conceptos deliberadamente separados, que no deben mezclarse (P-03):</p>
+
+<table>
+  <tr><th>Concepto</th><th>Dónde vive</th><th>Sobrevive a...</th></tr>
+  <tr><td><strong>Contexto de sesión</strong></td><td>Sesión ADK (en memoria del proceso)</td>
+      <td>Nada — se reinicia en cada login, evita contexto infinito y comportamiento
+          impredecible.</td></tr>
+  <tr><td><strong>Memoria persistente del jugador</strong></td><td>Firestore,
+      <code>player_profiles/{user_id}</code></td>
+      <td>Logins, redeploys, todo — sobrevive indefinidamente hasta que se olvide
+          explícitamente.</td></tr>
+  <tr><td><strong>Transcript de conversación</strong></td><td>Firestore,
+      <code>chat_sessions/{session_id}/messages</code></td>
+      <td>Logins — pero no se re-inyecta automáticamente como contexto activo (MVP: sin
+          selector de historial, TODO-01).</td></tr>
+</table>
+
+<p>
+El aprendizaje es progresivo y sin onboarding: el agente detecta preferencias/stats
+mencionados naturalmente en la conversación y llama <code>update_player_memory</code> por su
+cuenta. Corrección ("ya no juego X, ahora Y") reemplaza el valor, no lo acumula. Olvido
+explícito borra solo los campos pedidos. Todo esto se validó en vivo contra Firestore real
+(Fase 3 y en los casos <code>memory-correction</code>/<code>memory-forget</code> de la
+evaluación).
+</p>
+
+<div class="callout">
+<strong>Bug real encontrado y corregido:</strong> el cliente Python de Firestore no interpreta
+claves con punto (<code>"stats.level"</code>) como rutas anidadas dentro de
+<code>set(..., merge=True)</code> — las guarda como nombres de campo literales. El merge
+parcial correcto usa <code>update()</code> con esas mismas claves (que sí resuelve la ruta),
+asegurando primero que el documento exista.
+</div>
+
+<!-- ============ 7. AUTENTICACIÓN ============ -->
+<h1>7. Autenticación</h1>
+
+<p>
+Solo <code>username</code> + <code>password</code> — sin email, verificación, recuperación de
+contraseña ni MFA (deuda técnica aceptada explícitamente, ver Limitaciones).
+</p>
+
+<table>
+  <tr><th>Aspecto</th><th>Implementación</th></tr>
+  <tr><td>Hashing</td><td>PBKDF2-HMAC-SHA256, salt aleatorio de 16 bytes, 260,000 iteraciones. Nunca texto plano.</td></tr>
+  <tr><td>Token</td><td>JWT (HS256), <code>user_id</code> (UUID interno) en el payload, TTL configurable (480 min por defecto).</td></tr>
+  <tr><td>Aislamiento</td><td><code>user_id</code> sale <strong>exclusivamente</strong> del token decodificado por la dependencia de FastAPI — nunca del payload del chat ni elegido por el LLM.</td></tr>
+</table>
+
+<div class="callout">
+<strong>Decisión posterior al PRD original:</strong> se cerró el registro público
+(<code>POST /register</code> ya no existe). El frontend es de acceso anónimo, y la dueña del
+proyecto no quería que cualquier visitante creara una cuenta y consumiera tokens de Gemini a
+su cargo. Los usuarios son un roster fijo (3 cuentas) creado localmente vía
+<code>scripts/create_user.py</code>, nunca por HTTP.
+</div>
+
+<!-- ============ 8. DESPLIEGUE ============ -->
+<div class="page-break"></div>
+<h1>8. Despliegue</h1>
+
+<table>
+  <tr><th>Componente</th><th>Estado</th></tr>
+  <tr><td>Cloud Run</td><td><span class="badge badge-ok">activo</span>
+      servicio <code>elden-ring-agent</code>, <code>us-central1</code>, build desde
+      Dockerfile vía <code>gcloud run deploy --source .</code>.</td></tr>
+  <tr><td>Frontend</td><td><span class="badge badge-ok">activo</span>
+      estático, mismo contenedor/origen que la API (ver sección 3 y 10).</td></tr>
+  <tr><td>Google Sites / Apps Script</td><td><span class="badge badge-warn">no usado</span>
+      reemplazado por el punto anterior — ver Decisiones y trade-offs.</td></tr>
+  <tr><td>Firestore</td><td><span class="badge badge-ok">activo</span>
+      modo Native, <code>us-central1</code>, colecciones <code>users</code>,
+      <code>player_profiles</code>, <code>chat_sessions</code> (+ subcolección
+      <code>messages</code>).</td></tr>
+  <tr><td>BigQuery</td><td><span class="badge badge-ok">activo</span>
+      lectura de <code>entity_embeddings_vertex</code>, sin escritura desde este backend.</td></tr>
+  <tr><td>Secret Manager</td><td><span class="badge badge-ok">activo</span>
+      <code>JWT_SECRET</code> real (fuerte, generado con <code>secrets.token_urlsafe</code>),
+      nunca en variables de entorno de texto plano ni en el repo.</td></tr>
+</table>
+
+<p class="small">
+Nota operativa: el IAM por defecto (<code>roles/editor</code> en la service account de Cloud
+Run) necesitó dos roles adicionales otorgados explícitamente —
+<code>roles/storage.objectViewer</code> (para que Cloud Build lea el código fuente subido) y
+<code>roles/secretmanager.secretAccessor</code> sobre el secreto específico — ninguno de los
+dos viene incluido en <code>roles/editor</code> pese a su amplitud.
+</p>
+
+<!-- ============ 9. EVALUACIÓN ============ -->
+<h1>9. Evaluación</h1>
+
+<p>
+Dos niveles obligatorios, ninguno reemplaza al otro: evaluación manual (humana, 1–5) y
+LLM-as-a-judge (Gemini, salida estructurada). 13 casos, cubriendo las 8 categorías mínimas del
+PRD (lore, retrieval multilingüe, recomendación, recomendación+memoria, memoria persistente,
+corrección, olvido, fuera de corpus).
+</p>
+
+<table>
+  <tr><th>Métrica</th><th>Promedio</th><th>Objetivo</th><th></th></tr>
+  <tr><td>Groundedness</td><td>4.85</td><td>≥ 4.0</td><td><span class="badge badge-ok">cumple</span></td></tr>
+  <tr><td>Answer relevance</td><td>5.00</td><td>≥ 4.0</td><td><span class="badge badge-ok">cumple</span></td></tr>
+  <tr><td>Personalization (donde aplica)</td><td>4.83</td><td>≥ 4.0</td><td><span class="badge badge-ok">cumple</span></td></tr>
+  <tr><td>Fugas de memoria entre usuarios</td><td>0</td><td>0</td><td><span class="badge badge-ok">cumple</span></td></tr>
+  <tr><td>Passwords en texto plano</td><td>0</td><td>0</td><td><span class="badge badge-ok">cumple</span></td></tr>
+  <tr><td>Respuestas RAG con fuentes cuando corresponde</td><td>100%</td><td>100%</td><td><span class="badge badge-ok">cumple</span></td></tr>
+</table>
+
+<div class="callout honest">
+<strong>Hallazgo honesto, no maquillado:</strong> el juez automático marcó 1 de 13 casos
+(<code>lore-01</code>, sobre Malenia) como alucinación. La revisión manual encontró que es un
+<strong>falso positivo del juez</strong>: <code>semantic_documents</code> en BigQuery contiene
+dos entidades <code>boss</code> duplicadas para Malenia con listas de "drops" inconsistentes
+entre sí (verificado con una query directa a BigQuery). El agente reportó fielmente ambos
+registros y marcó la discrepancia explícitamente ("another record indicates…") — no inventó
+nada. Es un defecto de calidad de datos <em>upstream</em>, en la capa Gold de solo lectura, no
+del agente ni del RAG. Se documenta en detalle en
+<code>evaluation/manual_evaluation.md</code>.
+</div>
+
+<p class="small">
+Evidencia completa: <code>evaluation/cases.yaml</code> (casos),
+<code>evaluation/transcripts.json</code> (conversaciones completas reales),
+<code>evaluation/llm_judge_results.json</code> (veredictos estructurados por caso),
+<code>evaluation/manual_evaluation.md</code> (tabla de 8 métricas por caso + verificación
+explícita de los 6 criterios mínimos del PRD §36).
+</p>
+
+<!-- ============ 10. DECISIONES Y TRADE-OFFS ============ -->
+<div class="page-break"></div>
+<h1>10. Decisiones y trade-offs</h1>
+
+<h3>Vector Search (BigQuery) vs FAISS</h3>
+<p>
+Se usa <code>VECTOR_SEARCH</code> nativo de BigQuery sin índice ANN. Con ~1,208 documentos el
+escaneo exacto es rápido y evita mantener infraestructura de vectores separada (FAISS, un
+servicio de índice, sincronización) — trade-off correcto para este volumen; no se justificaría
+para un corpus de cientos de miles de filas.
+</p>
+
+<h3>Firestore vs BigQuery para memoria</h3>
+<p>
+Firestore para lecturas/escrituras frecuentes de bajo volumen por documento (perfil, mensajes)
+— BigQuery está optimizado para analítica sobre grandes volúmenes, no para el patrón de
+acceso "leer/escribir un documento por request" que necesita la memoria conversacional.
+</p>
+
+<h3>Un solo agente vs multiagente</h3>
+<p>Ver sección 5 — sin justificación funcional para orquestación entre agentes en este alcance.</p>
+
+<h3>IAM amplio por velocidad</h3>
+<p>
+La service account de Cloud Run usa <code>roles/editor</code> (con dos roles extra
+otorgados a mano, ver sección 8) en vez de una service account dedicada de mínimo privilegio.
+Deuda técnica aceptada explícitamente para priorizar velocidad de entrega sobre superficie de
+IAM mínima (TODO-05 post-MVP).
+</p>
+
+<h3>Apps Script vs frontend dedicado</h3>
+<p>
+Esta es la decisión más significativa que se desvió del plan original. El PRD proponía Apps
+Script embebido en Google Sites. Se implementó completo (Login/Chat, JWT, CORS), se publicó
+como Web App (<code>access: ANYONE_ANONYMOUS</code>, <code>executeAs: USER_DEPLOYING</code> —
+la única combinación válida para acceso público sin login de Google), y funcionaba
+perfectamente desde pruebas de servidor (<code>curl</code>, y las ejecuciones de
+<code>doGet()</code> en el editor de Apps Script siempre se registraron como "Completada" sin
+error). Sin embargo, el navegador real de la usuaria <strong>nunca</strong> pudo renderizar el
+Web App — mostraba un error genérico de Google Drive ("No se pudo abrir el archivo en este
+momento"), reproducible en múltiples cuentas, redes, dispositivos y navegadores (incluyendo
+incógnito), sin que se encontrara una causa raíz identificable del lado de Google.
+</p>
+<p>
+Ante un problema de infraestructura de terceros sin causa raíz diagnosticable y sin más
+palancas de control de nuestro lado, se decidió reemplazar Apps Script/Sites por un frontend
+estático (HTML/CSS/JS sin build) servido directamente por el mismo FastAPI vía
+<code>StaticFiles</code>, mismo origen que la API — patrón tomado de un proyecto hermano del
+mismo curso (<code>ah-grupo-fundador</code>). Esto eliminó por completo la superficie de falla
+(sin CORS, sin Google Sites, sin dependencia de la capa de serving de Apps Script) y se validó
+end-to-end en el navegador real de la usuaria tras el redeploy.
+</p>
+
+<!-- ============ 11. LIMITACIONES ============ -->
+<h1>11. Limitaciones</h1>
+<ul>
+  <li><strong>Corpus comunitario:</strong> los datos de <code>semantic_documents</code>
+    provienen de fuentes wiki de la comunidad, no de un dataset curado — contiene al menos una
+    inconsistencia real conocida (dos registros duplicados de Malenia con drops distintos,
+    ver sección 9). No se corrige aquí porque la capa Gold es de solo lectura y pertenece al
+    proyecto Medallion paralelo.</li>
+  <li><strong>Grounding restringido a la KB:</strong> el agente rechaza cualquier pregunta
+    fuera del corpus recuperado, incluso si la respuesta "obvia" está en el conocimiento
+    general del LLM — es una limitación deliberada (P-01), no un bug.</li>
+  <li><strong>Autenticación simplificada:</strong> sin email, verificación, recuperación de
+    contraseña ni MFA. Registro público cerrado — alta de usuarios solo local
+    (<code>scripts/create_user.py</code>).</li>
+  <li><strong>Sesgo de idioma ocasional:</strong> en una prueba anterior a la batería formal de
+    evaluación se observó una respuesta en inglés con un carácter chino suelto. No se
+    reprodujo en los 13 casos formales, pero el comportamiento multilingüe está mitigado, no
+    garantizado al 100%.</li>
+  <li><strong>Deuda técnica de IAM:</strong> service account con <code>roles/editor</code> en
+    vez de una identidad de mínimo privilegio dedicada (ver sección 10).</li>
+  <li><strong>Sin índice vectorial ANN:</strong> aceptable para ~1,208 documentos; no
+    escalaría sin cambios a corpus de órdenes de magnitud mayores.</li>
+  <li><strong>CORS ya no aplica</strong> (el frontend se sirve del mismo origen), pero
+    quedaba como deuda documentada mientras existió el frontend Apps Script.</li>
+</ul>
+
+<!-- ============ 12. MEJORAS FUTURAS ============ -->
+<h1>12. Mejoras futuras</h1>
+<table>
+  <tr><th>TODO</th><th>Descripción</th></tr>
+  <tr><td>TODO-01</td><td>Selector de historial navegable (el transcript ya se persiste, falta exponerlo en la UI).</td></tr>
+  <tr><td>TODO-02</td><td>Feedback explícito del usuario (👍/👎) sobre las respuestas.</td></tr>
+  <tr><td>TODO-03</td><td>Endpoints administrativos (gestión de usuarios, memoria, etc.).</td></tr>
+  <tr><td>TODO-04</td><td>Observabilidad avanzada (métricas, tracing, alertas).</td></tr>
+  <tr><td>TODO-05</td><td>Hardening de IAM: service account dedicada de mínimo privilegio.</td></tr>
+  <tr><td>TODO-06</td><td>Restringir CORS a orígenes específicos (ya no aplica tras el cambio de frontend, pero documentado por si se reintroduce un cliente externo).</td></tr>
+  <tr><td>TODO-07</td><td>Índice vectorial ANN si el corpus crece órdenes de magnitud.</td></tr>
+  <tr><td>TODO-08</td><td>Frontend avanzado (más pantallas, mejor UX, posiblemente streaming NDJSON en <code>/chat</code>).</td></tr>
+</table>
+
+<!-- ============ 13. URL ============ -->
+<h1>13. URL del servicio activo</h1>
+<p style="font-size:14px; text-align:center; margin-top:20px;">
+  <code>https://elden-ring-agent-704637212685.us-central1.run.app</code>
+</p>
+<p class="small" style="text-align:center;">
+  Frontend (Login/Chat) y API viven en la misma URL. Roster de acceso: 3 cuentas
+  pre-aprobadas (credenciales fuera de este documento).
+</p>
+
+</body>
+</html>
